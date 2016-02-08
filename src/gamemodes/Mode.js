@@ -33,9 +33,11 @@ Mode.prototype.onPlayerInit = function(player) {
 };
 
 Mode.prototype.onPlayerSpawn = function(gameServer, player) {
-    // Called when a player is spawned
-    player.color = gameServer.getRandomColor(); // Random color
-    gameServer.spawnPlayer(player);
+    if (gameServer.nospawn[player.socket.remoteAddress] != true) {
+        // Called when a player is spawned
+        player.color = gameServer.getRandomColor(); // Random color
+        gameServer.spawnPlayer(player);
+    }
 };
 
 Mode.prototype.pressQ = function(gameServer, player) {
@@ -71,7 +73,8 @@ Mode.prototype.pressQ = function(gameServer, player) {
         }
 
     } else if (player.spectate) {
-        gameServer.switchSpectator(player);
+        if (player.freeRoam) player.freeRoam = false;
+        else player.freeRoam = true;
     }
 };
 

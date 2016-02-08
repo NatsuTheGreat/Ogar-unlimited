@@ -6,6 +6,7 @@ function Virus() {
     this.cellType = 2;
     this.spiked = 1;
     this.fed = 0;
+    this.wobbly = 0; // wobbly effect
     this.isMotherCell = false; // Not to confuse bots
 }
 
@@ -71,13 +72,13 @@ Virus.prototype.onConsume = function(consumer, gameServer) {
     if (donot == 2) {
         donot = 0;
     } else {
+        // Cell consumes mass and then splits
+        consumer.addMass(this.mass);
+
         var maxSplits = Math.floor(consumer.mass / 16) - 1; // Maximum amount of splits
         var numSplits = gameServer.config.playerMaxCells - client.cells.length; // Get number of splits
         numSplits = Math.min(numSplits, maxSplits);
         var splitMass = Math.min(consumer.mass / (numSplits + 1), 36); // Maximum size of new splits
-
-        // Cell consumes mass before splitting
-        consumer.addMass(this.mass);
 
         // Cell cannot split any further
         if (numSplits <= 0) {
@@ -103,7 +104,7 @@ Virus.prototype.onConsume = function(consumer, gameServer) {
         // Splitting
         var angle = 0; // Starting angle
         for (var k = 0; k < numSplits; k++) {
-            angle += 6 / numSplits; // Get directions of splitting cells
+            angle = Math.random() * 6.28; // Get directions of splitting cells
             gameServer.newCellVirused(client, consumer, angle, splitMass, 150);
             consumer.mass -= splitMass;
         }
@@ -123,6 +124,7 @@ Virus.prototype.onConsume = function(consumer, gameServer) {
 
     } else {
         consumer.calcMergeTime(gameServer.config.playerRecombineTime);
+        client.actionMult += 0.6; // Account for anti-teaming
     }
 };
 

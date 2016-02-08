@@ -20,13 +20,16 @@ VO.prototype = new FFA();
 
 VO.prototype.onServerInit = function(gameServer) {
     // Called when the server starts
+    gameServer.lleaderboard = true;
     gameServer.run = true;
 };
 
 VO.prototype.onPlayerSpawn = function(gameServer, player) {
-    // Called when a player is spawned
-    player.color = gameServer.getRandomColor(); // Random color
-    gameServer.spawnPlayer(player);
+    if (gameServer.nospawn[player.socket.remoteAddress] != true) {
+        // Called when a player is spawned
+        player.color = gameServer.getRandomColor(); // Random color
+        gameServer.spawnPlayer(player);
+    }
 };
 
 VO.prototype.pressQ = function(gameServer, player) {

@@ -8,6 +8,8 @@
    * Shows how to use OP
  - Split [ID] [Count]
    * Splits a player
+ - Announce
+   * Starts up the announcement server (highscores)
  - Colortext [color]
    * Changes console Color and Style (blue, green,red,yellow,bold,reset,dim,white, help)
  - Team [id] [team (r,g,b)]
@@ -38,6 +40,8 @@
    * De-OPs a player
  - Rop
    * Resets op
+ - Restart [minutes]
+   * Restarts the server after a number of minutes or if you leave min blank, restarts immediatly
  - Pfmsg [delay] [duration] [x to repeat] [msg1] [msg2] [etc...]
    * Periodically sends a force message (seconds)
  - Spfmsg []
@@ -63,8 +67,10 @@
 
 Id   | Name
 -----|--------------
+4    | VirusOff - where no virus's spawn
 5    | UnlimitPVP - where you split can split indefinitly and rejoin instantly - 1v1 game (created by me)
 6    | UnlimitFFA - same as above (unlimited pvp) except in ffa (created by me)
+7    | Proportional FFA (in the future, size of map differs on players connected)
 15   | NoCollision teams
 16   | NoCollision Zteam
 17   | NoCollision Xteam
@@ -88,6 +94,11 @@ Id   | Name
 12. ffaMaxLB: Maximum amount of people to be listed in the leaderboard
 13. splitSpeed: Splitting Speed
 14. autopause: 1 = on (default) 0 = off
+15. randomEjectedMassColor: 1 = on, 0 = off
+16. liveConsole: 1 = on, 0 = off. Where you can see all stats easily
+17. restartmin: Time in minutes till server restarts (if 0, it is off)
+18. anounceDelay: delay for highscore announcement
+19. AnounceDuration: duration of announcement
 
 ## OP
 

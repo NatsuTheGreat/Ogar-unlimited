@@ -123,19 +123,22 @@ Tournament.prototype.formatTime = function(time) {
 // Override
 
 Tournament.prototype.onServerInit = function(gameServer) {
+    gameServer.overideauto = true;
     this.prepare(gameServer);
 };
 
 Tournament.prototype.onPlayerSpawn = function(gameServer, player) {
-    // Only spawn players if the game hasnt started yet
-    if ((this.gamePhase == 0) && (this.contenders.length < this.maxContenders)) {
-        player.color = gameServer.getRandomColor(); // Random color
-        this.contenders.push(player); // Add to contenders list
-        gameServer.spawnPlayer(player);
+    if (gameServer.nospawn[player.socket.remoteAddress] != true) {
+        // Only spawn players if the game hasnt started yet
+        if ((this.gamePhase == 0) && (this.contenders.length < this.maxContenders)) {
+            player.color = gameServer.getRandomColor(); // Random color
+            this.contenders.push(player); // Add to contenders list
+            gameServer.spawnPlayer(player);
 
-        if (this.contenders.length == this.maxContenders) {
-            // Start the game once there is enough players
-            this.startGamePrep(gameServer);
+            if (this.contenders.length == this.maxContenders) {
+                // Start the game once there is enough players
+                this.startGamePrep(gameServer);
+            }
         }
     }
 };

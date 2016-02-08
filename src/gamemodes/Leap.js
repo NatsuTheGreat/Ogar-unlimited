@@ -17,6 +17,9 @@ function Leap() {
 
 module.exports = Leap; // Remove the <> and make sure to not put the .js at the end
 Leap.prototype = new FFA(); // Change if you want to use a different Base gamemode, or delete this line if you don't want a base gamemode (advanced users)
+Leap.prototype.onServerInit = function(gameServer) {
+    gameServer.lleaderboard = true;
+};
 
 Leap.prototype.pressSpace = function(gameServer, player) {
     var len = player.cells.length;

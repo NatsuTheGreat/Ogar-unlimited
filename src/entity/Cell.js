@@ -12,6 +12,7 @@ function Cell(nodeId, owner, position, mass, gameServer) {
     this.mass = mass; // Starting mass of the cell
     this.cellType = -1; // 0 = Player Cell, 1 = Food, 2 = Virus, 3 = Ejected Mass
     this.spiked = Cell.spi; // If 1, then this cell has spikes around it
+    this.wobbly = 0; // If 1 the cell has a very jiggly cell border
 
     this.killedBy; // Cell that ate this cell
     this.gameServer = gameServer;
@@ -61,12 +62,12 @@ Cell.prototype.getSquareSize = function() {
 Cell.prototype.addMass = function(n) {
     if (this.mass + n > this.owner.gameServer.config.playerMaxMass && this.owner.cells.length < this.owner.gameServer.config.playerMaxCells) {
         this.mass = (this.mass + n) / 2;
-        this.owner.gameServer.newCellVirused(this.owner, this, 0, this.mass, 150);
+        var randomAngle = Math.random() * 6.28 // Get random angle
+        this.owner.gameServer.newCellVirused(this.owner, this, randomAngle, this.mass, 350);
     } else {
         this.mass = Math.min(this.mass + n, this.owner.gameServer.config.playerMaxMass);
     }
 };
-
 Cell.prototype.getSpeed = function() {
     // Old formula: 5 + (20 * (1 - (this.mass/(70+this.mass))));
     // Based on 50ms ticks. If updateMoveEngine interval changes, change 50 to new value
@@ -166,14 +167,14 @@ Cell.prototype.calcMovePhys = function(config) {
                 if (this.nodeId == cell.nodeId) {
                     continue;
                 }
-                if (!this.simpleCollide(x1,y1,cell,collisionDist)) {
+                if (!this.simpleCollide(x1, y1, cell, collisionDist)) {
                     continue;
                 }
-                var dist = this.getDist(x1,y1,cell.position.x,cell.position.y);
+                var dist = this.getDist(x1, y1, cell.position.x, cell.position.y);
                 if (dist < collisionDist) { // Collided
                     var newDeltaY = cell.position.y - y1;
                     var newDeltaX = cell.position.x - x1;
-                    var newAngle = Math.atan2(newDeltaX,newDeltaY);
+                    var newAngle = Math.atan2(newDeltaX, newDeltaY);
                     var move = (collisionDist - dist + 5) / 2; //move cells each halfway until they touch
                     xmove = move * Math.sin(newAngle);
                     ymove = move * Math.cos(newAngle);
@@ -256,12 +257,12 @@ Cell.prototype.onAutoMove = function(gameServer) {
 Cell.prototype.moveDone = function(gameServer) {
     // Called when this cell finished moving with the auto move engine
 };
-Cell.prototype.simpleCollide = function(x1,y1,check,d) {
+Cell.prototype.simpleCollide = function(x1, y1, check, d) {
     // Simple collision check
     var len = d >> 0; // Width of cell + width of the box (Int)
 
     return (this.abs(x1 - check.position.x) < len) &&
-           (this.abs(y1 - check.position.y) < len);
+        (this.abs(y1 - check.position.y) < len);
 };
 
 Cell.prototype.abs = function(x) {

@@ -36,12 +36,12 @@ PlayerCell.prototype.visibleCheck = function(box, centerPos) {
     return (this.abs(this.position.x - centerPos.x) < lenX) && (this.abs(this.position.y - centerPos.y) < lenY);
 };
 
-PlayerCell.prototype.simpleCollide = function(x1,y1,check,d) {
+PlayerCell.prototype.simpleCollide = function(x1, y1, check, d) {
     // Simple collision check
     var len = d >> 0; // Width of cell + width of the box (Int)
 
     return (this.abs(x1 - check.position.x) < len) &&
-           (this.abs(y1 - check.position.y) < len);
+        (this.abs(y1 - check.position.y) < len);
 };
 
 PlayerCell.prototype.calcMergeTime = function(base) {
@@ -57,15 +57,15 @@ PlayerCell.prototype.calcMove = function(x2, y2, gameServer) {
     // Get angle
     var deltaY = y2 - this.position.y;
     var deltaX = x2 - this.position.x;
-    var angle = Math.atan2(deltaX,deltaY);
+    var angle = Math.atan2(deltaX, deltaY);
 
-    if(isNaN(angle)) {
+    if (isNaN(angle)) {
         return;
     }
 
     // Distance between mouse pointer and cell
-    var dist = this.getDist(this.position.x,this.position.y,x2,y2);
-    var speed = Math.min(this.getSpeed(),dist);
+    var dist = this.getDist(this.position.x, this.position.y, x2, y2);
+    var speed = Math.min(this.getSpeed(), dist);
 
     var x1 = this.position.x + (speed * Math.sin(angle));
     var y1 = this.position.y + (speed * Math.cos(angle));
@@ -73,51 +73,51 @@ PlayerCell.prototype.calcMove = function(x2, y2, gameServer) {
     var yd = 0;
 
     // Collision check for other cells
-for (var i = 0; i < this.owner.cells.length; i++) {
-    var cell = this.owner.cells[i];
+    for (var i = 0; i < this.owner.cells.length; i++) {
+        var cell = this.owner.cells[i];
 
-    if ((this.nodeId == cell.nodeId) || (this.ignoreCollision) || (cell.ignoreCollision)) {
-        // Don't collide with cell that has ignoreCollision on, when I have ignoreCollision on, or with yourself
-        continue;
-    }
-
-    if ((cell.recombineTicks > 0) || (this.recombineTicks > 0)) {
-        // Cannot recombine - Collision with your own cells
-        var collisionDist = cell.getSize() + r; // Minimum distance between the 2 cells
-        dist = this.getDist(x1, y1, cell.position.x, cell.position.y); // Distance between these two cells
-        if (!this.simpleCollide(x1,y1,cell,collisionDist)) {
-            // Skip
+        if ((this.nodeId == cell.nodeId) || (this.ignoreCollision) || (cell.ignoreCollision)) {
+            // Don't collide with cell that has ignoreCollision on, when I have ignoreCollision on, or with yourself
             continue;
         }
 
-        // Calculations
-        if (dist < collisionDist) { // Collided
-            // The moving cell pushes the colliding cell
-            // Strength however depends on cell1 speed divided by cell2 speed
-            var c1Speed = this.getSpeed();
-            var c2Speed = cell.getSpeed();
-            var mult = 0.9 // Limit from 0.5 to 2, not to have bugs
+        if ((cell.recombineTicks > 0) || (this.recombineTicks > 0)) {
+            // Cannot recombine - Collision with your own cells
+            var collisionDist = cell.getSize() + r; // Minimum distance between the 2 cells
+            dist = this.getDist(x1, y1, cell.position.x, cell.position.y); // Distance between these two cells
+            if (!this.simpleCollide(x1, y1, cell, collisionDist)) {
+                // Skip
+                continue;
+            }
 
-            var newDeltaY = y1 - cell.position.y;
-            var newDeltaX = x1 - cell.position.x;
+            // Calculations
+            if (dist < collisionDist) { // Collided
+                // The moving cell pushes the colliding cell
+                // Strength however depends on cell1 speed divided by cell2 speed
+                var c1Speed = this.getSpeed();
+                var c2Speed = cell.getSpeed();
+                var mult = 0.9 // Limit from 0.5 to 2, not to have bugs
 
-            var newAngle = Math.atan2(newDeltaX, newDeltaY);
+                var newDeltaY = y1 - cell.position.y;
+                var newDeltaX = x1 - cell.position.x;
 
-            var move = (collisionDist - dist) * mult;
+                var newAngle = Math.atan2(newDeltaX, newDeltaY);
 
-            x1 = x1 + (move * Math.sin(newAngle)) >> 0;
-            y1 = y1 + (move * Math.cos(newAngle)) >> 0;
+                var move = (collisionDist - dist) * mult;
+
+                x1 = x1 + (move * Math.sin(newAngle)) >> 0;
+                y1 = y1 + (move * Math.cos(newAngle)) >> 0;
+            }
         }
     }
-}
 
     var xSave = this.position.x;
     var ySave = this.position.y;
-    gameServer.gameMode.onCellMove(x1,y1,this);
+    gameServer.gameMode.onCellMove(x1, y1, this);
     x1 += xd + (this.position.x - xSave);
     y1 += yd + (this.position.y - ySave);
 
-    gameServer.gameMode.onCellMove(x1,y1,this);
+    gameServer.gameMode.onCellMove(x1, y1, this);
 
     // Check to ensure we're not passing the world border
     if (x1 < config.borderLeft) {
@@ -144,7 +144,9 @@ PlayerCell.prototype.getEatingRange = function() {
 };
 
 PlayerCell.prototype.onConsume = function(consumer, gameServer) {
-    consumer.addMass(this.mass);
+    // Add an inefficiency for eating other players' cells
+    var factor = (consumer.owner === this.owner ? 1 : gameServer.config.massAbsorbedPercent / 100);
+    consumer.addMass(factor * this.mass);
 };
 
 PlayerCell.prototype.onAdd = function(gameServer) {

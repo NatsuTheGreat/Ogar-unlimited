@@ -42,13 +42,14 @@ Commands.list = {
         console.log("Space = Death virus");
         console.log("[Console] ====================================================");
     },
-
     help: function(gameServer, split) {
         console.log("[Console] ======================== HELP ======================");
         console.log("[Console] ophelp     : Shows OP help");
         console.log("[Console] addbot     : add bot to the server");
         console.log("[Console] kickbots   : kick a specified amount of bots");
         console.log("[Console] board      : set scoreboard text");
+        console.log("[Console] Restart    : Restart server or set time till restart");
+        console.log("[Console] Announce   : Starts the auto announce for high scores")
         console.log("[Console] boardreset : reset scoreboard text");
         console.log("[Console] change     : change specified settings");
         console.log("[Console] clear      : clear console output");
@@ -87,35 +88,101 @@ Commands.list = {
         console.log("[Console] Split      : Splits a player");
         console.log("[Console] Team       : Changes a players Team");
         console.log("[Console] Colortext  : changes text style");
+        console.log("[Console] Shrink     : Shrinks the game");
+        console.log("[Console] Enlarge    : Enlargens the game");
         console.log("[Console] ====================================================");
     },
+    enlarge: function(gameServer, split) {
+        borderDec = split[1];
+        if (isNaN(borderDec)) {
+            borderDec = 200;
+        }
+        gameServer.config.borderLeft -= borderDec;
+        gameServer.config.borderRight += borderDec;
+        gameServer.config.borderTop -= borderDec;
+        gameServer.config.borderBottom += borderDec;
+
+        console.log("[Console] Successivly Enlarged game. Size: " + (gameServer.config.borderRight - gameServer.config.borderLeft) + "," + (gameServer.config.borderBottom - gameServer.config.borderTop));
+
+    },
+    shrink: function(gameServer, split) {
+        borderDec = split[1];
+        if (isNaN(borderDec)) {
+            borderDec = 200;
+        }
+        gameServer.config.borderLeft += borderDec;
+        gameServer.config.borderRight -= borderDec;
+        gameServer.config.borderTop += borderDec;
+        gameServer.config.borderBottom -= borderDec;
+
+        var len = gameServer.nodes.length;
+        for (var i = 0; i < len; i++) {
+            var node = gameServer.nodes[i];
+
+            if ((!node) || (node.getType() == 0)) {
+                continue;
+            }
+
+            // Move
+            if (node.position.x < gameServer.config.borderLeft) {
+                gameServer.removeNode(node);
+                i--;
+            } else if (node.position.x > gameServer.config.borderRight) {
+                gameServer.removeNode(node);
+                i--;
+            } else if (node.position.y < gameServer.config.borderTop) {
+                gameServer.removeNode(node);
+                i--;
+            } else if (node.position.y > gameServer.config.borderBottom) {
+                gameServer.removeNode(node);
+                i--;
+            }
+        }
+        console.log("[Console] Successivly shrinked game. Size: " + (gameServer.config.borderRight - gameServer.config.borderLeft) + "," + (gameServer.config.borderBottom - gameServer.config.borderTop));
+
+    },
+
     colortext: function(gameServer, split) {
         var c = split[1].toLowerCase();
-        if(c == "red") {
+        if (c == "red") {
             console.log("\x1b[31mText is now Red");
+            gameServer.red = true;
         } else
-        if(c == "green") {
+        if (c == "green") {
             console.log("\x1b[32mText is now Green");
+            gameServer.green = true;
         } else
-        if(c == "blue") {
+        if (c == "blue") {
             console.log("\x1b[34mText is now Blue");
+            gameServer.blue = true;
         } else
-        if(c == "yellow") {
+        if (c == "yellow") {
             console.log("\x1b[33mText is now Yellow");
+            gameServer.yellow = true;
         } else
-        if(c == "reset") {
+        if (c == "reset") {
             console.log("\x1b[0mText is now Reset");
+            gameServer.red = false;
+            gameServer.green = false;
+            gameServer.blue = false;
+            gameServer.yellow = false;
+            gameServer.dim = false;
+            gameServer.bold = false;
+            gameServer.white = false;
         } else
-        if(c == "bold") {
+        if (c == "bold") {
             console.log("\x1b[1mText is now Bold");
-        } else 
-        if(c == "white") {
+            gameServer.bold = true;
+        } else
+        if (c == "white") {
             console.log("\x1b[37mText is now White");
-        } else 
-        if(c == "dim") {
+            gameServer.white = true;
+        } else
+        if (c == "dim") {
             console.log("\x1b[2mText is now Dim");
-        } else 
-        if(c == "help") {
+            gameServer.dim = true;
+        } else
+        if (c == "help") {
             console.log("----- Colortext Help -----");
             console.log("Red");
             console.log("Green");
@@ -126,25 +193,59 @@ Commands.list = {
             console.log("Bold");
             console.log("Reset");
         } else {
-         console.log ("Please specify a valid style or do Colortext help for a list");   
+            console.log("Please specify a valid style or do Colortext help for a list");
         }
-        
+
     },
-    
-     whitelist: function(gameServer, split) {
+    announce: function(gameServer, split) {
+        console.log("High Score announce system started");
+        setInterval(function() {
+            var lol = Math.floor(gameServer.topscore) + " ";
+            var lol2 = Math.floor(gameServer.oldtopscores.score) + " ";
+            var newLB = [];
+            newLB[0] = "Highscore:";
+            newLB[1] = gameServer.topusername;
+            newLB[2] = "Withscore:";
+            newLB[3] = lol
+            newLB[4] = "------------";
+            newLB[6] = "Prev Top Score";
+            newLB[7] = lol2;
+            newLB[8] = "By:";
+            newLB[9] = gameServer.oldtopscores.name;
+            gameServer.lleaderboard = false;
+            gameServer.gameMode.packetLB = 48;
+            gameServer.gameMode.specByLeaderboard = false;
+            gameServer.gameMode.updateLB = function(gameServer) {
+                gameServer.leaderboard = newLB
+            };
+            console.log("[Console] Successfully set leaderboard");
+            setTimeout(function() {
+                var gm = GameMode.get(gameServer.gameMode.ID);
+
+                // Replace functions
+                gameServer.gameMode.packetLB = gm.packetLB;
+                gameServer.gameMode.updateLB = gm.updateLB;
+                setTimeout(function() {
+                    gameServer.lleaderboard = true;
+                }, 2000);
+                console.log("[Console] Successfully reset leaderboard");
+
+            }, gameServer.config.anounceDuration * 1000);
+
+        }, gameServer.config.anounceDelay * 1000);
+    },
+
+    whitelist: function(gameServer, split) {
         console.log("[Console] Current whitelisted IPs (" + gameServer.whlist.length + ")");
         for (var i in gameServer.whlist) {
             console.log(gameServer.whlist[i]);
         }
     },
-
     clearwhitelist: function(gameServer, split) {
         console.log("[Console] Cleared " + gameServer.whlist.length + " IP's");
         gameServer.whlist = [];
 
     },
-
-    
     whitelist: function(gameServer, split) {
         // Get ip
         var ip = split[1];
@@ -156,8 +257,7 @@ Commands.list = {
             console.log("[Console] That IP is already whitelisted");
         }
     },
-    
-    unwhitelist: function (gameServer, split) {
+    unwhitelist: function(gameServer, split) {
         var ip = split[1]; // Get ip
         var index = gameServer.whlist.indexOf(ip);
         if (index > -1) {
@@ -167,7 +267,7 @@ Commands.list = {
             console.log("That IP is not whitelisted");
         }
     },
-    unban: function (gameServer, split) {
+    unban: function(gameServer, split) {
         var ip = split[1]; // Get ip
         var index = gameServer.banned.indexOf(ip);
         if (index > -1) {
@@ -230,7 +330,6 @@ Commands.list = {
         }
 
     },
-
     split: function(gameServer, split) {
         // Validation checks
         var id = parseInt(split[1]);
@@ -243,6 +342,10 @@ Commands.list = {
             console.log("[Console] Since you did not specify split count, We will split the person into 16 cells");
             count = 4;
         }
+        if (count > gameServer.config.playerMaxCells) {
+            console.log("[Console]" + amount + "Is greater than the max cells, split into the max cell amount");
+            count = gameServer.config.playerMaxCells;
+        }
         for (var i in gameServer.clients) {
             if (gameServer.clients[i].playerTracker.pID == id) {
                 var client = gameServer.clients[i].playerTracker;
@@ -254,7 +357,6 @@ Commands.list = {
             }
         }
     },
-
     resetvirus: function(gameServer, split) {
         gameServer.troll = [];
         console.log("[Console] Turned any Special Viruses (from op's) Into normal ones");
@@ -265,46 +367,49 @@ Commands.list = {
         var ip = split[1];
 
         if (gameServer.whlist.indexOf(ip) == -1) {
-        if (gameServer.banned.indexOf(ip) == -1) {
-            gameServer.banned.push(ip);
-            console.log("[Console] Added " + ip + " to the banlist");
-            // Remove from game
-            var newLB = [];
-            newLB[0] = "The Ban Hammer";
-            newLB[1] = "Has Spoken!";
-            newLB[2] = "A Player has been";
-            newLB[3] = "Banned with IP";
-            newLB[4] = ip;
-            // Clears the update leaderboard function and replaces it with our own
-            gameServer.gameMode.packetLB = 48;
-            gameServer.gameMode.specByLeaderboard = false;
-            gameServer.gameMode.updateLB = function(gameServer) {
-                gameServer.leaderboard = newLB
-            };
-            setTimeout(function() {
-                var gm = GameMode.get(gameServer.gameMode.ID);
+            if (gameServer.banned.indexOf(ip) == -1) {
+                gameServer.banned.push(ip);
+                console.log("[Console] Added " + ip + " to the banlist");
+                // Remove from game
+                var newLB = [];
+                newLB[0] = "The Ban Hammer";
+                newLB[1] = "Has Spoken!";
+                newLB[2] = "A Player has been";
+                newLB[3] = "Banned with IP";
+                newLB[4] = ip;
+                // Clears the update leaderboard function and replaces it with our own
+                gameServer.lleaderboard = false;
+                gameServer.gameMode.packetLB = 48;
+                gameServer.gameMode.specByLeaderboard = false;
+                gameServer.gameMode.updateLB = function(gameServer) {
+                    gameServer.leaderboard = newLB
+                };
+                setTimeout(function() {
+                    var gm = GameMode.get(gameServer.gameMode.ID);
 
-                // Replace functions
-                gameServer.gameMode.packetLB = gm.packetLB;
-                gameServer.gameMode.updateLB = gm.updateLB;
+                    // Replace functions
+                    gameServer.gameMode.packetLB = gm.packetLB;
+                    gameServer.gameMode.updateLB = gm.updateLB;
+                    setTimeout(function() {
+                        gameServer.lleaderboard = true;
+                    }, 2000);
+                }, 14000);
+                for (var i in gameServer.clients) {
+                    var c = gameServer.clients[i];
+                    if (!c.remoteAddress) {
+                        continue;
+                    }
+                    if (c.remoteAddress == ip) {
 
-            }, 14000);
-            for (var i in gameServer.clients) {
-                var c = gameServer.clients[i];
-                if (!c.remoteAddress) {
-                    continue;
+                        //this.socket.close();
+                        c.close(); // Kick out
+                    }
                 }
-                if (c.remoteAddress == ip) {
-
-                    //this.socket.close();
-                    c.close(); // Kick out
-                }
+            } else {
+                console.log("[Console] That IP is already banned");
             }
         } else {
-            console.log("[Console] That IP is already banned");
-        }
-        } else {
-            
+
             console.log("[Console] That IP is whitelisted")
         }
     },
@@ -314,13 +419,11 @@ Commands.list = {
             console.log(gameServer.banned[i]);
         }
     },
-
     clearban: function(gameServer, split) {
         console.log("[Console] Cleared " + gameServer.banned.length + " IP's");
         gameServer.banned = [];
 
     },
-
     rop: function(gameServer, split) {
         gameServer.op = [];
         gameServer.oppname = [];
@@ -337,14 +440,12 @@ Commands.list = {
         gameServer.op[ops] = 547;
         console.log("[Console] Made " + ops + " OP");
     },
-
     dop: function(gameServer, split) {
         var ops = parseInt(split[1]);
         gameServer.op[ops] = 0;
         gameServer.opc[ops] = 0;
         console.log("De opped " + ops);
     },
-
     spmsg: function(gameServer, split) {
         if (gameServer.pmsg == 0) {
             console.log("[Console] You have no PMSG Process");
@@ -379,17 +480,21 @@ Commands.list = {
         var r = 1;
         gameServer.pmsg = 1;
         pmsgt = setInterval(function() {
+            gameServer.lleaderboard = false;
             gameServer.gameMode.packetLB = 48;
             gameServer.gameMode.specByLeaderboard = false;
             gameServer.gameMode.updateLB = function(gameServer) {
                 gameServer.leaderboard = newLB
-            };
+            }
             console.log("[PMSG] The message has been broadcast " + r + "/" + re);
             var gm = GameMode.get(gameServer.gameMode.ID);
             setTimeout(function() {
                 // Replace functions
                 gameServer.gameMode.packetLB = gm.packetLB;
                 gameServer.gameMode.updateLB = gm.updateLB;
+                setTimeout(function() {
+                    gameServer.lleaderboard = true;
+                }, 2000);
                 console.log("[PMSG] The board has been reset");
                 r++;
                 if (r > re) {
@@ -402,7 +507,6 @@ Commands.list = {
         }, delay);
 
     },
-
     spfmsg: function(gameServer, split) {
         if (gameServer.pfmsg == 0) {
             console.log("[Console] You have no SPFMSG Process");
@@ -439,6 +543,7 @@ Commands.list = {
         gameServer.pfmsg = 1;
         var r = 1;
         pfmsgt = setInterval(function() {
+            gameServer.lleaderboard = false;
             gameServer.gameMode.packetLB = 48;
             gameServer.gameMode.specByLeaderboard = false;
             gameServer.gameMode.updateLB = function(gameServer) {
@@ -453,7 +558,8 @@ Commands.list = {
                 }
 
             }
-            gameServer.run = !gameServer.run;
+            gameServer.overideauto = true;
+            gameServer.run = false;
             console.log("[PFMSG] The message has been broadcast " + r + "/" + re);
             var gm = GameMode.get(gameServer.gameMode.ID);
             setTimeout(function() {
@@ -468,8 +574,12 @@ Commands.list = {
                     }
 
                 }
-                gameServer.run = !gameServer.run;
+                gameServer.overideauto = false;
+                gameServer.run = true;
                 console.log("[PFMSG] The game has been reset");
+                setTimeout(function() {
+                    gameServer.lleaderboard = true;
+                }, 2000);
                 r++;
                 if (r > re) {
                     console.log("[PFMSG] Done");
@@ -484,7 +594,8 @@ Commands.list = {
     fmsg: function(gameServer, split) {
         var newLB = [];
         var n = [];
-        gameServer.run = !gameServer.run; // Switches the pause state
+        gameServer.overideauto = true;
+        gameServer.run = false; // Switches the pause state
 
         for (var i = 1; i < split.length; i++) {
             newLB[i - 1] = split[i];
@@ -498,6 +609,7 @@ Commands.list = {
             }
 
         }
+        gameServer.lleaderboard = false;
         gameServer.gameMode.packetLB = 48;
         gameServer.gameMode.specByLeaderboard = false;
         gameServer.gameMode.updateLB = function(gameServer) {
@@ -519,11 +631,14 @@ Commands.list = {
                 }
 
             }
-            gameServer.run = !gameServer.run;
+            gameServer.overideauto = false;
+            gameServer.run = true;
             console.log("[ForceMSG] The game has been reset");
+            setTimeout(function() {
+                gameServer.lleaderboard = true;
+            }, 2000);
         }, 6500);
     },
-
     msg: function(gameServer, split) {
         var newLB = [];
         for (var i = 1; i < split.length; i++) {
@@ -531,6 +646,7 @@ Commands.list = {
         }
 
         // Clears the update leaderboard function and replaces it with our own
+        gameServer.lleaderboard = false;
         gameServer.gameMode.packetLB = 48;
         gameServer.gameMode.specByLeaderboard = false;
         gameServer.gameMode.updateLB = function(gameServer) {
@@ -544,10 +660,12 @@ Commands.list = {
             gameServer.gameMode.packetLB = gm.packetLB;
             gameServer.gameMode.updateLB = gm.updateLB;
             console.log("[MSG] The board has been reset");
+            setTimeout(function() {
+                gameServer.lleaderboard = true;
+            }, 2000);
 
         }, 14000);
     },
-
     troll: function(gameServer, split) {
         var id = parseInt(split[1]);
         if (isNaN(id)) {
@@ -620,7 +738,6 @@ Commands.list = {
         console.log("[Console] Player " + id + " Was Trolled")
 
     },
-
     nojoin: function(gameServer, split) {
         var id = parseInt(split[1]);
         if (isNaN(id)) {
@@ -632,13 +749,12 @@ Commands.list = {
             if (gameServer.clients[i].playerTracker.pID == id) {
                 var client = gameServer.clients[i].playerTracker;
                 for (var j in client.cells) {
-                    client.cells[j].calcMergeTime(10000);
+                    client.cells[j].calcMergeTime(100000);
                 }
             }
         }
-        console.log("That player cannot rejoin now")
+        console.log("That player cannot recombine now")
     },
-
     merge: function(gameServer, split) {
         // Validation checks
         var id = parseInt(split[1]);
@@ -660,13 +776,13 @@ Commands.list = {
             }
         }
     },
-
     addbot: function(gameServer, split) {
         var add = parseInt(split[1]);
         if (isNaN(add)) {
             add = 1; // Adds 1 bot if user doesnt specify a number
         }
-
+        gameServer.livestage = 2;
+        gameServer.liveticks = 0;
         for (var i = 0; i < add; i++) {
             gameServer.bots.addBot();
         }
@@ -706,6 +822,7 @@ Commands.list = {
         }
 
         // Clears the update leaderboard function and replaces it with our own
+        gameServer.lleaderboard = false;
         gameServer.gameMode.packetLB = 48;
         gameServer.gameMode.specByLeaderboard = false;
         gameServer.gameMode.updateLB = function(gameServer) {
@@ -721,6 +838,9 @@ Commands.list = {
         gameServer.gameMode.packetLB = gm.packetLB;
         gameServer.gameMode.updateLB = gm.updateLB;
         console.log("[Console] Successfully reset leaderboard");
+        setTimeout(function() {
+            gameServer.lleaderboard = true;
+        }, 2000);
     },
     change: function(gameServer, split) {
         var key = split[1];
@@ -773,10 +893,52 @@ Commands.list = {
         }
     },
     exit: function(gameServer, split) {
-        
+
         console.log("\x1b[0m[Console] Closing server...");
         gameServer.socketServer.close();
         process.exit(1);
+    },
+    restart: function(gameServer, split) {
+        var time = split[1];
+        if (isNaN(time) || time < 1) {
+
+            console.log("\x1b[0m[Console] Restarting server...");
+            gameServer.socketServer.close();
+            process.exit(3);
+        } else {
+            console.log("Server Restarting in " + time + " minutes!");
+            setTimeout(function() {
+                var newLB = [];
+                newLB[0] = "Server Restarting"
+                newLB[1] = "In 1 Minute"
+                this.lleaderboard = false;
+
+                // Clears the update leaderboard function and replaces it with our own
+                gameServer.gameMode.packetLB = 48;
+                gameServer.gameMode.specByLeaderboard = false;
+                gameServer.gameMode.updateLB = function(gameServer) {
+                    gameServer.leaderboard = newLB
+                };
+                console.log("The Server is Restarting in 1 Minute");
+                setTimeout(function() {
+                    var gm = GameMode.get(gameServer.gameMode.ID);
+
+                    // Replace functions
+                    gameServer.gameMode.packetLB = gm.packetLB;
+                    gameServer.gameMode.updateLB = gm.updateLB;
+                    setTimeout(function() {
+                        gameServer.lleaderboard = true;
+                    }, 2000);
+                }, 14000);
+
+                setTimeout(function() {
+                    console.log("\x1b[0m[Console] Restarting server...");
+                    gameServer.socketServer.close();
+                    process.exit(3);
+                }, 60000);
+            }, (time * 60000) - 60000);
+
+        }
     },
     food: function(gameServer, split) {
         var pos = {
@@ -857,7 +1019,6 @@ Commands.list = {
             }
         }
     },
-
     kickrange: function(gameServer, split) {
         var start = parseInt(split[1]);
         var end = parseInt(split[2]);
@@ -879,8 +1040,6 @@ Commands.list = {
             }
         }
     },
-
-
     kill: function(gameServer, split) {
         var id = parseInt(split[1]);
         if (isNaN(id)) {
@@ -903,6 +1062,9 @@ Commands.list = {
             }
         }
     },
+    highscore: function(gameServer, split) {
+        console.log("High score: " + gameServer.topscore + " By " + gameServer.topusername);
+    },
     killall: function(gameServer, split) {
         var count = 0;
         var len = gameServer.nodesPlayer.length;
@@ -920,7 +1082,7 @@ Commands.list = {
             return;
         }
 
-        var amount = Math.max(parseInt(split[2]), 9);
+        var amount = Math.max(parseInt(split[2]), 10);
         if (isNaN(amount)) {
             console.log("[Console] Please specify a valid number");
             return;
@@ -970,7 +1132,7 @@ Commands.list = {
     playerlist: function(gameServer, split) {
         console.log("[Console] Showing " + gameServer.clients.length + " players: ");
         console.log(" ID         | IP              | " + fillChar('NICK', ' ', gameServer.config.playerMaxNickLength) + " | CELLS | SCORE  | POSITION    "); // Fill space
-        console.log(fillChar('', '-', ' ID         | IP              |  | CELLS | SCORE  | POSITION    '.length + gameServer.config.playerMaxNickLength));
+        console.log(fillChar(' ', '-', ' ID         | IP              |  | CELLS | SCORE  | POSITION    '.length + gameServer.config.playerMaxNickLength));
         for (var i = 0; i < gameServer.clients.length; i++) {
             var client = gameServer.clients[i].playerTracker;
 

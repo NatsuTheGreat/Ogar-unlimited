@@ -1,5 +1,5 @@
 var Packet = require('./packet');
-var GameServer = require('./GameServer');
+var GameServer = require('./GameServer.js');
 
 function PlayerTracker(gameServer, socket) {
     this.pID = -1;
@@ -18,17 +18,20 @@ function PlayerTracker(gameServer, socket) {
         y: 0
     };
     this.mouseCells = []; // For individual cell movement
-    this.tickLeaderboard = 0; //
+    this.tickLeaderboard = 0;
     this.tickViewBox = 0;
 
     this.team = 0;
     this.spectate = false;
-    this.spectatedPlayer = -1; // Current player that this player is watching
+    this.freeRoam = false; // Free-roam mode enables player to move in spectate mode
+    this.massDecayMult = 1; // Anti-teaming multiplier
+    this.actionMult = 0; // If reaches over 1, it'll account as anti-teaming
+    this.actionDecayMult = 1; // Players not teaming will lose their anti-teaming multiplier far more quickly
 
     // Viewing box
     this.sightRangeX = 0;
     this.sightRangeY = 0;
-    this.centerPos = {
+    this.centerPos = { // Center of map
         x: 3000,
         y: 3000
     };
@@ -47,6 +50,9 @@ function PlayerTracker(gameServer, socket) {
 
     // Gamemode function
     if (gameServer) {
+        // Find center
+        this.centerPos.x = (gameServer.config.borderLeft - gameServer.config.borderRight) / 2;
+        this.centerPos.y = (gameServer.config.borderTop - gameServer.config.borderBottom) / 2;
         // Player id
         this.pID = gameServer.getNewPlayerID();
         // Gamemode function
@@ -79,7 +85,22 @@ PlayerTracker.prototype.getScore = function(reCalcScore) {
             this.score = s;
         }
     }
-    return this.score >> 0;
+
+    if (this.score > this.gameServer.topscore + 10) {
+
+        if (this.name != this.gameServer.topusername) {
+            this.gameServer.oldtopscores.score = this.gameServer.topscore;
+            this.gameServer.oldtopscores.name = this.gameServer.topusername;
+        }
+        this.gameServer.topscore = Math.floor(this.score);
+        this.gameServer.topusername = this.name;
+
+        if (this.gameServer.config.showtopscore == 1) {
+            console.log("[Console] " + this.name + " Made a new high score of " + Math.floor(this.score));
+        }
+    }
+    return Math.floor(this.score);
+
 };
 
 PlayerTracker.prototype.setColor = function(color) {
@@ -130,27 +151,31 @@ PlayerTracker.prototype.update = function() {
     var nonVisibleNodes = []; // Nodes that are not visible
     if (this.tickViewBox <= 0) {
         var newVisible = this.calcViewBox();
+        if (newVisible && newVisible.length) {
+            try { // Add a try block in any case
 
-        // Compare and destroy nodes that are not seen
-        for (var i = 0; i < this.visibleNodes.length; i++) {
-            var index = newVisible.indexOf(this.visibleNodes[i]);
-            if (index == -1) {
-                // Not seen by the client anymore
-                nonVisibleNodes.push(this.visibleNodes[i]);
-            }
+                // Compare and destroy nodes that are not seen
+                for (var i = 0; i < this.visibleNodes.length; i++) {
+                    var index = newVisible.indexOf(this.visibleNodes[i]);
+                    if (index == -1) {
+                        // Not seen by the client anymore
+                        nonVisibleNodes.push(this.visibleNodes[i]);
+                    }
+                }
+
+                // Add nodes to client's screen if client has not seen it already
+                for (var i = 0; i < newVisible.length; i++) {
+                    var index = this.visibleNodes.indexOf(newVisible[i]);
+                    if (index == -1) {
+                        updateNodes.push(newVisible[i]);
+                    }
+                }
+            } finally {} // Catch doesn't work for some reason
+
+            this.visibleNodes = newVisible;
+            // Reset Ticks
+            this.tickViewBox = 2;
         }
-
-        // Add nodes to client's screen if client has not seen it already
-        for (var i = 0; i < newVisible.length; i++) {
-            var index = this.visibleNodes.indexOf(newVisible[i]);
-            if (index == -1) {
-                updateNodes.push(newVisible[i]);
-            }
-        }
-
-        this.visibleNodes = newVisible;
-        // Reset Ticks
-        this.tickViewBox = 2;
     } else {
         this.tickViewBox--;
         // Add nodes to screen
@@ -217,6 +242,25 @@ PlayerTracker.prototype.update = function() {
 };
 
 // Viewing box
+PlayerTracker.prototype.antiTeamTick = function() {
+    // ANTI-TEAMING DECAY
+    // Calculated even if anti-teaming is disabled.
+    this.actionMult *= (0.999 * this.actionDecayMult);
+    this.actionDecayMult *= 0.999;
+
+    if (this.actionDecayMult > 1.002004) this.actionDecayMult = 1.002004; // Very small differences. Don't change this.
+    if (this.actionDecayMult < 1) this.actionDecayMult = 1;
+
+    // Limit/reset anti-teaming effect
+    if (this.actionMult < 1 && this.massDecayMult > 1) this.actionMult = 0.299; // Speed up cooldown
+    if (this.actionMult > 1.4) this.actionMult = 1.4;
+    if (this.actionMult < 0.15) this.actionMult = 0;
+
+    // Apply anti-teaming if required
+    if (this.actionMult > 1) this.massDecayMult = this.actionMult;
+    else this.massDecayMult = 1;
+
+}
 
 PlayerTracker.prototype.updateSightRange = function() { // For view distance
     var totalSize = 1.0;
@@ -294,33 +338,118 @@ PlayerTracker.prototype.calcViewBox = function() {
 PlayerTracker.prototype.getSpectateNodes = function() {
     var specPlayer;
 
-    if (this.gameServer.getMode().specByLeaderboard) {
-        this.spectatedPlayer = Math.min(this.gameServer.leaderboard.length - 1, this.spectatedPlayer);
-        specPlayer = this.spectatedPlayer == -1 ? null : this.gameServer.leaderboard[this.spectatedPlayer];
-    } else {
-        this.spectatedPlayer = Math.min(this.gameServer.clients.length - 1, this.spectatedPlayer);
-        specPlayer = this.spectatedPlayer == -1 ? null : this.gameServer.clients[this.spectatedPlayer].playerTracker;
-    }
+    if (!this.freeRoam) {
+        // TODO: Sort out switch between playerTracker.playerTracker.x and playerTracker.x problem.
+        specPlayer = this.gameServer.largestClient;
+        // Detect specByLeaderboard as player trackers are complicated
+        if (!this.gameServer.gameMode.specByLeaderboard && specPlayer) {
+            // Get spectated player's location and calculate zoom amount
+            var specZoom = Math.sqrt(100 * specPlayer.playerTracker.score);
+            specZoom = Math.pow(Math.min(40.5 / specZoom, 1.0), 0.4) * 0.6;
 
-    if (specPlayer) {
-        // If selected player has died/disconnected, switch spectator and try again next tick
-        if (specPlayer.cells.length == 0) {
-            this.gameServer.switchSpectator(this);
-            return [];
+            // Apparently doing this.centerPos = specPlayer.centerPos will set based on reference. We don't want this
+            this.centerPos.x = specPlayer.playerTracker.centerPos.x;
+            this.centerPos.y = specPlayer.playerTracker.centerPos.y;
+
+            this.sendCustomPosPacket(specPlayer.playerTracker.centerPos.x, specPlayer.playerTracker.centerPos.y, specZoom);
+            return specPlayer.playerTracker.visibleNodes.slice(0, specPlayer.playerTracker.visibleNodes.length);
+
+        } else if (this.gameServer.gameMode.specByLeaderboard && specPlayer) {
+            // Get spectated player's location and calculate zoom amount
+            var specZoom = Math.sqrt(100 * specPlayer.score);
+            specZoom = Math.pow(Math.min(40.5 / specZoom, 1.0), 0.4) * 0.6;
+
+            // Apparently doing this.centerPos = specPlayer.centerPos will set based on reference. We don't want this
+            this.centerPos.x = specPlayer.centerPos.x;
+            this.centerPos.y = specPlayer.centerPos.y;
+
+            this.sendCustomPosPacket(specPlayer.centerPos.x, specPlayer.centerPos.y, specZoom);
+            return specPlayer.visibleNodes.slice(0, specPlayer.visibleNodes.length);
         }
-
-        // Get spectated player's location and calculate zoom amount
-        var specZoom = Math.sqrt(100 * specPlayer.score);
-        specZoom = Math.pow(Math.min(40.5 / specZoom, 1.0), 0.4) * 0.6;
-        // TODO: Send packet elsewhere so it is send more often
-        this.socket.sendPacket(new Packet.UpdatePosition(
-            specPlayer.centerPos.x + this.scrambleX,
-            specPlayer.centerPos.y + this.scrambleY,
-            specZoom
-        ));
-        // TODO: Recalculate visible nodes for spectator to match specZoom
-        return specPlayer.visibleNodes.slice(0, specPlayer.visibleNodes.length);
     } else {
-        return []; // Nothing
+        // User is in free roam
+        // To mimic agar.io, get distance from center to mouse and apply a part of the distance
+        specPlayer = null;
+
+        var dist = this.gameServer.getDist(this.mouse.x, this.mouse.y, this.centerPos.x, this.centerPos.y);
+        var angle = this.getAngle(this.mouse.x, this.mouse.y, this.centerPos.x, this.centerPos.y);
+        var speed = Math.min(dist / 10, 190); // Not to break laws of universe by going faster than light speed
+
+        this.centerPos.x += speed * Math.sin(angle);
+        this.centerPos.y += speed * Math.cos(angle);
+        this.updateCenter();
+
+        // Check if went away from borders
+        this.checkBorderPass();
+
+        // Now that we've updated center pos, get nearby cells
+        // We're going to use config's view base times 2.5
+
+        var mult = 2.5; // To simplify multiplier, in case this needs editing later on
+        this.viewBox.topY = this.centerPos.y - this.gameServer.config.serverViewBaseY * mult;
+        this.viewBox.bottomY = this.centerPos.y + this.gameServer.config.serverViewBaseY * mult;
+        this.viewBox.leftX = this.centerPos.x - this.gameServer.config.serverViewBaseX * mult;
+        this.viewBox.rightX = this.centerPos.x + this.gameServer.config.serverViewBaseX * mult;
+        this.viewBox.width = this.gameServer.config.serverViewBaseX * mult;
+        this.viewBox.height = this.gameServer.config.serverViewBaseY * mult;
+
+        // Use calcViewBox's way of looking for nodes
+        var newVisible = [];
+        for (var i = 0; i < this.gameServer.nodes.length; i++) {
+            node = this.gameServer.nodes[i];
+
+            if (!node) {
+                continue;
+            }
+
+            if (node.visibleCheck(this.viewBox, this.centerPos)) {
+                // Cell is in range of viewBox
+                newVisible.push(node);
+            }
+        }
+        var specZoom = Math.sqrt(100 * 150);
+        specZoom = Math.pow(Math.min(40.5 / 150, 1.0), 0.4) * 0.6; // Constant zoom
+        this.sendPosPacket(specZoom);
+        return newVisible;
     }
+};
+
+PlayerTracker.prototype.checkBorderPass = function() {
+    // A check while in free-roam mode to avoid player going into nothingness
+    if (this.centerPos.x < this.gameServer.config.borderLeft) {
+        this.centerPos.x = this.gameServer.config.borderLeft;
+    }
+    if (this.centerPos.x > this.gameServer.config.borderRight) {
+        this.centerPos.x = this.gameServer.config.borderRight;
+    }
+    if (this.centerPos.y < this.gameServer.config.borderTop) {
+        this.centerPos.y = this.gameServer.config.borderTop;
+    }
+    if (this.centerPos.y > this.gameServer.config.borderBottom) {
+        this.centerPos.y = this.gameServer.config.borderBottom;
+    }
+};
+
+PlayerTracker.prototype.sendPosPacket = function(specZoom) {
+    // TODO: Send packet elsewhere so it is sent more often
+    this.socket.sendPacket(new Packet.UpdatePosition(
+        this.centerPos.x + this.scrambleX,
+        this.centerPos.y + this.scrambleY,
+        specZoom
+    ));
+};
+
+PlayerTracker.prototype.sendCustomPosPacket = function(x, y, specZoom) {
+    // TODO: Send packet elsewhere so it is sent more often
+    this.socket.sendPacket(new Packet.UpdatePosition(
+        x + this.scrambleX,
+        y + this.scrambleY,
+        specZoom
+    ));
+};
+
+PlayerTracker.prototype.getAngle = function(x1, y1, x2, y2) {
+    var deltaY = y1 - y2;
+    var deltaX = x1 - x2;
+    return Math.atan2(deltaX, deltaY);
 };

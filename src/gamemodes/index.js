@@ -19,6 +19,8 @@ module.exports = {
     Virus: require('./Virus.js'),
     BlackHole: require('./BlackHole.js'),
     TFFA: require('./TFFA.js'),
+    VirusOff: require('./VirusOff.js'),
+    SFFA: require('./SFFA.js'),
 };
 
 var get = function(id) {
@@ -30,14 +32,20 @@ var get = function(id) {
         case 2: // Experimental
             mode = new module.exports.Experimental();
             break;
-             case 3: // TFFA
+        case 3: // TFFA
             mode = new module.exports.TFFA();
+            break;
+        case 4: // VirusOff
+            mode = new module.exports.VirusOff();
             break;
         case 5: // unlimitpvp
             mode = new module.exports.Unlimitpvp();
             break;
         case 6: // unlimitFFA
             mode = new module.exports.UnlimitFFA();
+            break;
+        case 7: // Shrinking ffa
+            mode = new module.exports.SFFA();
             break;
         case 10: // Tournament
             mode = new module.exports.Tournament();
@@ -66,7 +74,6 @@ var get = function(id) {
         case 18: // leap
             mode = new module.exports.Leap();
             break;
-
         case 19:
             mode = new module.exports.Virus();
             break;

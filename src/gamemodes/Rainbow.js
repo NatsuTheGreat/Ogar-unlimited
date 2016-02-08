@@ -156,6 +156,7 @@ Rainbow.prototype.changeColor = function(node) {
 
 Rainbow.prototype.onServerInit = function() {
     // Overrides the update function
+    gameServer.lleaderboard = true;
     Food.prototype.sendUpdate = function() {
         return true;
     };

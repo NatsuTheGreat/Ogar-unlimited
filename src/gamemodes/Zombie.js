@@ -58,18 +58,20 @@ Zombie.prototype.makeZombie = function(player) {
 // Override
 
 Zombie.prototype.onPlayerSpawn = function(gameServer, player) {
-    // make player a zombie if there are none
-    if (this.zombies.length == 0) {
-        player.team = 0;
-        player.color = this.zombieColor;
-    } else {
-        // use player id as team so that bots are still able to fight (even though they probably turn into zombies very fast)
-        player.team = player.pID;
-        player.color = gameServer.getRandomColor();
-    }
+    if (gameServer.nospawn[player.socket.remoteAddress] != true) {
+        // make player a zombie if there are none
+        if (this.zombies.length == 0) {
+            player.team = 0;
+            player.color = this.zombieColor;
+        } else {
+            // use player id as team so that bots are still able to fight (even though they probably turn into zombies very fast)
+            player.team = player.pID;
+            player.color = gameServer.getRandomColor();
+        }
 
-    // Spawn player
-    gameServer.spawnPlayer(player);
+        // Spawn player
+        gameServer.spawnPlayer(player);
+    }
 };
 
 Zombie.prototype.onCellAdd = function(cell) {
