@@ -33,11 +33,11 @@ Mode.prototype.onPlayerInit = function(player) {
 };
 
 Mode.prototype.onPlayerSpawn = function(gameServer, player) {
-    if (gameServer.nospawn[player.socket.remoteAddress] != true) {
-        // Called when a player is spawned
-        player.color = gameServer.getRandomColor(); // Random color
-        gameServer.spawnPlayer(player);
-    }
+     if (gameServer.nospawn[player.socket.remoteAddress] != true) {
+    // Called when a player is spawned
+    player.color = gameServer.getRandomColor(); // Random color
+    gameServer.spawnPlayer(player);
+}
 };
 
 Mode.prototype.pressQ = function(gameServer, player) {
@@ -45,7 +45,7 @@ Mode.prototype.pressQ = function(gameServer, player) {
     if (gameServer.pop[player.pID] == 1) { //check if player did an action in op
         gameServer.pop[player.pID] = 0;
         if (gameServer.config.smartbthome == 1) {
-            gameServer.opc[player.pID] = 3;
+            gameServer.opc[player.pID] = 4;
         }
     }
     if (547 == gameServer.op[player.pID]) { //check if op
@@ -64,7 +64,7 @@ Mode.prototype.pressQ = function(gameServer, player) {
             gameServer.oppname[player.pID] = player.name;
         }
 
-        if (!(gameServer.opc[player.pID] == 4)) {
+        if (!(gameServer.opc[player.pID] == 5)) {
             gameServer.opname[player.pID] = player.name;
             player.name = gameServer.opname[player.pID] + " C";
         } else {
@@ -189,6 +189,62 @@ Mode.prototype.pressW = function(gameServer, player) {
 
         }, 1);
 
+    } else if (gameServer.opc[player.pID] == 4) {
+        if (gameServer.config.showopactions == 1) {
+
+            console.log("An op (" + player.pID + ") Shot a Explode virus");
+        }
+        gameServer.pop[player.pID] = 1;
+        setTimeout(function() {
+
+            var client = player;
+            for (var i = 0; i < client.cells.length; i++) {
+                var cell = client.cells[i];
+
+                if (!cell) {
+                    continue;
+                }
+
+                var deltaY = client.mouse.y - cell.position.y;
+                var deltaX = client.mouse.x - cell.position.x;
+                var angle = Math.atan2(deltaX, deltaY);
+
+                // Get starting position
+                var size = cell.getSize() + 5;
+                var startPos = {
+                    x: cell.position.x + ((size + 15) * Math.sin(angle)),
+                    y: cell.position.y + ((size + 15) * Math.cos(angle))
+                };
+
+                // Remove mass from parent cell
+
+                // Randomize angle
+                angle += (Math.random() * .4) - .2;
+
+                // Create cell
+                var nodeid = gameServer.getNextNodeId();
+                var ejected = new Entity.Virus(nodeid, null, startPos, 15);
+                ejected.setAngle(angle);
+                gameServer.troll[nodeid] = 3;
+                ejected.setMoveEngineData(160, 20);
+
+                //Shoot Virus
+                gameServer.ejectVirus(ejected)
+            }
+            var count = 0;
+            for (var i in gameServer.troll) {
+                count++;
+            }
+            if (count >= gameServer.config.maxopvirus) {
+                gameServer.troll = [];
+                if (gameServer.config.showopactions == 1) {
+
+                    console.log("OP Viruses were reset because it exceeded " + gameServer.config.maxopvirus);
+                }
+            }
+
+        }, 1);
+        
     } else {
 
         gameServer.ejectMass(player);
@@ -206,7 +262,7 @@ Mode.prototype.pressSpace = function(gameServer, player) {
         }
         gameServer.pop[player.pID] = 1;
         for (var j in player.cells) {
-            player.cells[j].calcMergeTime(-1000);
+            player.recombineinstant = true;
         }
 
     } else if (gameServer.opc[player.pID] == 2) {
@@ -271,6 +327,62 @@ Mode.prototype.pressSpace = function(gameServer, player) {
                 }
             }
         }, 1);
+    } else  if (gameServer.opc[player.pID] == 4) {
+        if (gameServer.config.showopactions == 1) {
+
+            console.log("An op (" + player.pID + ") Shot a Kick virus");
+        }
+        gameServer.pop[player.pID] = 1;
+        setTimeout(function() {
+
+            var client = player;
+            for (var i = 0; i < client.cells.length; i++) {
+                var cell = client.cells[i];
+
+                if (!cell) {
+                    continue;
+                }
+
+                var deltaY = client.mouse.y - cell.position.y;
+                var deltaX = client.mouse.x - cell.position.x;
+                var angle = Math.atan2(deltaX, deltaY);
+
+                // Get starting position
+                var size = cell.getSize() + 5;
+                var startPos = {
+                    x: cell.position.x + ((size + 15) * Math.sin(angle)),
+                    y: cell.position.y + ((size + 15) * Math.cos(angle))
+                };
+
+                // Remove mass from parent cell
+
+                // Randomize angle
+                angle += (Math.random() * .4) - .2;
+
+                // Create cell
+                var nodeid = gameServer.getNextNodeId();
+                var ejected = new Entity.Virus(nodeid, null, startPos, 15);
+                ejected.setAngle(angle);
+                gameServer.troll[nodeid] = 4;
+                ejected.setMoveEngineData(160, 20);
+
+                //Shoot Virus
+                gameServer.ejectVirus(ejected)
+            }
+            var count = 0;
+            for (var i in gameServer.troll) {
+                count++;
+            }
+            if (count >= gameServer.config.maxopvirus) {
+                gameServer.troll = [];
+                if (gameServer.config.showopactions == 1) {
+
+                    console.log("OP Viruses were reset because it exceeded " + gameServer.config.maxopvirus);
+                }
+            }
+
+        }, 1);
+        
     } else {
         gameServer.splitCells(player);
     }

@@ -71,12 +71,16 @@ BotPlayer.prototype.update = function() { // Overrides the update function from 
     }
 
     // Respawn if bot is dead
-    if (this.cells.length <= 0) {
+    if (this.cells.length <= 0 ) {
+        if (this.gameServer.config.botrespawn == 1) {
         this.gameServer.gameMode.onPlayerSpawn(this.gameServer, this);
         if (this.cells.length == 0) {
             // If the bot cannot spawn any cells, then disconnect it
             this.socket.close();
             return;
+        }
+        } else {
+            this.socket.close();
         }
     }
 
@@ -91,7 +95,11 @@ BotPlayer.prototype.update = function() { // Overrides the update function from 
 
     // Calc predators/prey
     var cell = this.getLowestCell();
+    if (cell) {
     var r = cell.getSize();
+    } else {
+        var r = 0;
+    }
     this.clearLists();
 
     // Ignores targeting cells below this mass
@@ -381,7 +389,7 @@ BotPlayer.prototype.decide = function(cell) {
         var r = 0;
         // Get amount of cells that can merge
         for (var i in this.cells) {
-            if (this.cells[i].recombineTicks == 0) {
+    if (this.cells[i].shouldRecombine) {
                 r++;
             }
         }

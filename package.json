@@ -5,6 +5,7 @@
     "main":"src/index.js",
     "dependencies":{
         "ws":"^1.0.1"
+    , "request" : "latest"
     },
     "devDependencies":{},
     "scripts":{

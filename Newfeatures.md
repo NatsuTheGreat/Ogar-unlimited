@@ -40,6 +40,8 @@
    * De-OPs a player
  - Rop
    * Resets op
+ - Rainbow [id]
+   * Adds/removes rainbow effect for a player
  - Restart [minutes]
    * Restarts the server after a number of minutes or if you leave min blank, restarts immediatly
  - Pfmsg [delay] [duration] [x to repeat] [msg1] [msg2] [etc...]
@@ -50,6 +52,8 @@
    * Periodically sends a message (seconds)
  - Spmsg []
    * stops pmsg
+ - Killbots [number]
+   * Kills a number of bots (leave field blank and it will kick all bots)
  - Troll [id]
    * You figure out this one, Its a suprise!
  - Fmsg [message 1] [message 2] [etc...]
@@ -71,6 +75,7 @@ Id   | Name
 5    | UnlimitPVP - where you split can split indefinitly and rejoin instantly - 1v1 game (created by me)
 6    | UnlimitFFA - same as above (unlimited pvp) except in ffa (created by me)
 7    | Proportional FFA (in the future, size of map differs on players connected)
+8    | Expiramental v2
 15   | NoCollision teams
 16   | NoCollision Zteam
 17   | NoCollision Xteam
@@ -99,6 +104,9 @@ Id   | Name
 17. restartmin: Time in minutes till server restarts (if 0, it is off)
 18. anounceDelay: delay for highscore announcement
 19. AnounceDuration: duration of announcement
+20. motherCellMassProtection: 1 , Stopping mothercells from being too big (0 to disable)
+21. motherCellMaxMass: 10000 ,Max mass of a mothercell
+22. botrespawn: If 1, bots automatically respawn (default), if 0, they dont respwan
 
 ## OP
 
@@ -108,3 +116,15 @@ Id   | Name
 4. shoot Anti-matter
 5. shoot troll virus
 6. shoot kill virus
+7. shoot explode virus
+8. shoot kick virus
+
+## Other
+
+1. made splitting much better
+2. Ejected mass collide
+3. Revolutionary no-lag,no-DDoS, Anti-bot system (ban)
+4. Clean up some code and add mothercell.js on another file
+5. add liveconsole
+6. SKINS `<skiname>yourname`
+7. more features I forgot to mention

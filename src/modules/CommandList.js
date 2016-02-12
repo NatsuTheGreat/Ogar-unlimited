@@ -2,6 +2,7 @@
 var Teams = require('../gamemodes/Teams.js');
 var GameMode = require('../gamemodes');
 var Entity = require('../entity');
+var EjectedMass = require('../entity/EjectedMass');
 
 function Commands() {
     this.list = {}; // Empty
@@ -27,7 +28,7 @@ var fillChar = function(data, char, fieldLength, rTL) {
 Commands.list = {
     ophelp: function(gameServer, split) {
         console.log("[Console] ======================= OP HELP =====================");
-        console.log("You use OP by first setting who has op by doing op [id] in console. Then, that player can use the op features in game by pressing q. Then a c will appear next to your name. If you press w in this state, it gives you 100 more mass. If you press space in this state, you will be able to rejoin instantly. You will find out that if you press q again, two c's will appear next to your name. if you press w in this state, you shoot viruses. If you press space in this state, you shoot tiny things (almost invisible) that if someone eats, their mass is reduced by 100. Then, if you press q again,3 c's will appear.press w with 3c's, you shoot a virus, but whoever who eats it will be trolled :). If you press space with 3 c's the person who eats the virus will be killed. You can then exit op by pressing q again after doing an action or by pressing Q until the three c's will dissappear (so that you can normally split and shoot mass).");
+        console.log("You use OP by first setting who has op by doing op [id] in console. Then, that player can use the op features in game by pressing q. Then a c will appear next to your name. If you press w in this state, it gives you 100 more mass. If you press space in this state, you will be able to rejoin instantly. You will find out that if you press q again, two c's will appear next to your name. if you press w in this state, you shoot viruses. If you press space in this state, you shoot tiny things (almost invisible) that if someone eats, their mass is reduced by 100. Then, if you press q again,3 c's will appear.press w with 3c's, you shoot a virus, but whoever who eats it will be trolled :). If you press space with 3 c's the person who eats the virus will be killed.If you  press q again, 4 cs will appear and if you press w, you will shoot a virus tha explodes people and space, it shoots a kick virus. You can then exit op by pressing q again after doing an action or by pressing Q until the three c's will dissappear (so that you can normally split and shoot mass).");
         console.log("[Console] ===================== OP Usage Map ===================");
         console.log("One C:");
         console.log("W = Addmass 100+");
@@ -40,6 +41,9 @@ Commands.list = {
         console.log("Three C's:");
         console.log("W = Troll virus");
         console.log("Space = Death virus");
+        console.log("Four C's:");
+        console.log("W = Explode virus");
+        console.log("Space = Kick Virus")
         console.log("[Console] ====================================================");
     },
     help: function(gameServer, split) {
@@ -71,8 +75,9 @@ Commands.list = {
         console.log("[Console] Kickrange  : kicks in a ID range");
         console.log("[Console] Killrange  : kills in a ID range");
         console.log("[Console] Merge      : Forces that player to merge");
-        console.log("[Console] Nojoin     : Prevents the player from merging")
-        console.log("[Console] Msg        : Sends a message")
+        console.log("[Console] Nojoin     : Prevents the player from merging");
+        console.log("[Console] Msg        : Sends a message");
+        console.log("[Console] Killbots   : Kills bots");
         console.log("[Console] Fmsg       : Sends a Force Message");
         console.log("[Console] Pmsg       : Periodically sends a message");
         console.log("[Console] Spmsg      : Stops any Pmsg proccess");
@@ -90,58 +95,111 @@ Commands.list = {
         console.log("[Console] Colortext  : changes text style");
         console.log("[Console] Shrink     : Shrinks the game");
         console.log("[Console] Enlarge    : Enlargens the game");
+        console.log("[Console] Explode    : Explodes a player");
+        console.log("[Console] Resetateam : Resets anti team effect for a player");
+        console.log("[Console] Rainbow    : Gives rainbow effect to a player");
         console.log("[Console] ====================================================");
     },
-    enlarge: function(gameServer, split) {
-        borderDec = split[1];
-        if (isNaN(borderDec)) {
-            borderDec = 200;
-        }
-        gameServer.config.borderLeft -= borderDec;
-        gameServer.config.borderRight += borderDec;
-        gameServer.config.borderTop -= borderDec;
-        gameServer.config.borderBottom += borderDec;
+ explode: function(gameServer, split) {
+    var id = parseInt(split[1]);
+    for (var i in gameServer.clients) {
+            if (gameServer.clients[i].playerTracker.pID == id) {
+                var client = gameServer.clients[i].playerTracker; // Set color
+                for(var i = 0; i < client.cells.length; i++) {
+                var cell = client.cells[i];
+                while(cell.mass > 10) {
+                    cell.mass -= gameServer.config.ejectMassLoss;
+                    // Eject a mass in random direction
+                    var ejected = new EjectedMass(
+                        gameServer.getNextNodeId(),
+                        null,
+                        {x: cell.position.x, y: cell.position.y},
+                        gameServer.config.ejectMass
+                    );
+                    ejected.setAngle(6.28 * Math.random()) // Random angle [0, 2 * pi)
+                    ejected.setMoveEngineData(
+                        Math.random() * gameServer.config.ejectSpeed,
+                        35,
+                        0.5 + 0.4 * Math.random()
+                    );
+                    ejected.setColor(cell.getColor());
+                    gameServer.addNode(ejected);
+                    gameServer.setAsMovingNode(ejected);
+                }
+                cell.mass = 10;
+            }
 
+        }
+    }
+},
+
+    resetateam: function(gameServer, split) {
+        // Validation checks
+        var id = parseInt(split[1]);
+        if (isNaN(id)) {
+            console.log("[Console] Please specify a valid player ID!");
+            return;
+        }
+ 
+        if (!gameServer.clients[id]) {
+            console.log("[Console] Client is nonexistent!");
+            return;
+        }
+ 
+        gameServer.clients[id].playerTracker.massDecayMult = 1;
+        gameServer.clients[id].playerTracker.actionMult = 0;
+        gameServer.clients[id].playerTracker.actionDecayMult = 1;
+        console.log("[Console] Successfully reset client's anti-team effect");
+},
+    enlarge: function(gameServer,split) {
+    borderDec = split[1];
+    if (isNaN(borderDec)) {
+        borderDec = 200;
+    }
+    gameServer.config.borderLeft -= borderDec;
+    gameServer.config.borderRight += borderDec;
+    gameServer.config.borderTop -= borderDec;
+    gameServer.config.borderBottom += borderDec;
+    
         console.log("[Console] Successivly Enlarged game. Size: " + (gameServer.config.borderRight - gameServer.config.borderLeft) + "," + (gameServer.config.borderBottom - gameServer.config.borderTop));
+        
+},
+    shrink: function(gameServer,split) {
+    borderDec = split[1];
+    if (isNaN(borderDec)) {
+        borderDec = 200;
+    }
+    gameServer.config.borderLeft += borderDec;
+    gameServer.config.borderRight -= borderDec;
+    gameServer.config.borderTop += borderDec;
+    gameServer.config.borderBottom -= borderDec;
+    
+    var len = gameServer.nodes.length;
+    for (var i = 0; i < len; i++) {
+        var node = gameServer.nodes[i];
 
-    },
-    shrink: function(gameServer, split) {
-        borderDec = split[1];
-        if (isNaN(borderDec)) {
-            borderDec = 200;
+        if ((!node) || (node.getType() == 0)) {
+            continue;
         }
-        gameServer.config.borderLeft += borderDec;
-        gameServer.config.borderRight -= borderDec;
-        gameServer.config.borderTop += borderDec;
-        gameServer.config.borderBottom -= borderDec;
 
-        var len = gameServer.nodes.length;
-        for (var i = 0; i < len; i++) {
-            var node = gameServer.nodes[i];
-
-            if ((!node) || (node.getType() == 0)) {
-                continue;
-            }
-
-            // Move
-            if (node.position.x < gameServer.config.borderLeft) {
-                gameServer.removeNode(node);
-                i--;
-            } else if (node.position.x > gameServer.config.borderRight) {
-                gameServer.removeNode(node);
-                i--;
-            } else if (node.position.y < gameServer.config.borderTop) {
-                gameServer.removeNode(node);
-                i--;
-            } else if (node.position.y > gameServer.config.borderBottom) {
-                gameServer.removeNode(node);
-                i--;
-            }
+        // Move
+        if (node.position.x < gameServer.config.borderLeft) {
+            gameServer.removeNode(node);
+            i--;
+        } else if (node.position.x > gameServer.config.borderRight) {
+            gameServer.removeNode(node);
+            i--;
+        } else if (node.position.y < gameServer.config.borderTop) {
+            gameServer.removeNode(node);
+            i--;
+        } else if (node.position.y > gameServer.config.borderBottom) {
+            gameServer.removeNode(node);
+            i--;
         }
+    }
         console.log("[Console] Successivly shrinked game. Size: " + (gameServer.config.borderRight - gameServer.config.borderLeft) + "," + (gameServer.config.borderBottom - gameServer.config.borderTop));
-
-    },
-
+        
+},
     colortext: function(gameServer, split) {
         var c = split[1].toLowerCase();
         if (c == "red") {
@@ -196,45 +254,43 @@ Commands.list = {
             console.log("Please specify a valid style or do Colortext help for a list");
         }
 
-    },
-    announce: function(gameServer, split) {
+},
+    announce: function(gameServer,split) {
         console.log("High Score announce system started");
         setInterval(function() {
-            var lol = Math.floor(gameServer.topscore) + " ";
+           var lol = Math.floor(gameServer.topscore) + " ";
             var lol2 = Math.floor(gameServer.oldtopscores.score) + " ";
-            var newLB = [];
+          var newLB = [];
             newLB[0] = "Highscore:";
             newLB[1] = gameServer.topusername;
             newLB[2] = "Withscore:";
-            newLB[3] = lol
+            newLB[3] = "lol";
             newLB[4] = "------------";
             newLB[6] = "Prev Top Score";
             newLB[7] = lol2;
             newLB[8] = "By:";
             newLB[9] = gameServer.oldtopscores.name;
-            gameServer.lleaderboard = false;
-            gameServer.gameMode.packetLB = 48;
-            gameServer.gameMode.specByLeaderboard = false;
-            gameServer.gameMode.updateLB = function(gameServer) {
-                gameServer.leaderboard = newLB
-            };
+        gameServer.lleaderboard = false;
+        gameServer.gameMode.packetLB = 48;
+        gameServer.gameMode.specByLeaderboard = false;
+        gameServer.gameMode.updateLB = function(gameServer) {
+        gameServer.leaderboard = newLB;
+        };
             console.log("[Console] Successfully set leaderboard");
-            setTimeout(function() {
+            setTimeout(function () {
                 var gm = GameMode.get(gameServer.gameMode.ID);
 
-                // Replace functions
-                gameServer.gameMode.packetLB = gm.packetLB;
-                gameServer.gameMode.updateLB = gm.updateLB;
-                setTimeout(function() {
-                    gameServer.lleaderboard = true;
-                }, 2000);
-                console.log("[Console] Successfully reset leaderboard");
-
-            }, gameServer.config.anounceDuration * 1000);
-
-        }, gameServer.config.anounceDelay * 1000);
+        // Replace functions
+        gameServer.gameMode.packetLB = gm.packetLB;
+        gameServer.gameMode.updateLB = gm.updateLB;
+        
+        setTimeout(function () {gameServer.lleaderboard = true;},2000);
+        console.log("[Console] Successfully reset leaderboard");
+                
+            },gameServer.config.anounceDuration * 1000);
+            
+        },gameServer.config.anounceDelay*1000);
     },
-
     whitelist: function(gameServer, split) {
         console.log("[Console] Current whitelisted IPs (" + gameServer.whlist.length + ")");
         for (var i in gameServer.whlist) {
@@ -390,9 +446,7 @@ Commands.list = {
                     // Replace functions
                     gameServer.gameMode.packetLB = gm.packetLB;
                     gameServer.gameMode.updateLB = gm.updateLB;
-                    setTimeout(function() {
-                        gameServer.lleaderboard = true;
-                    }, 2000);
+setTimeout(function () {gameServer.lleaderboard = true;},2000);
                 }, 14000);
                 for (var i in gameServer.clients) {
                     var c = gameServer.clients[i];
@@ -410,7 +464,7 @@ Commands.list = {
             }
         } else {
 
-            console.log("[Console] That IP is whitelisted")
+            console.log("[Console] That IP is whitelisted");
         }
     },
     banlist: function(gameServer, split) {
@@ -492,9 +546,7 @@ Commands.list = {
                 // Replace functions
                 gameServer.gameMode.packetLB = gm.packetLB;
                 gameServer.gameMode.updateLB = gm.updateLB;
-                setTimeout(function() {
-                    gameServer.lleaderboard = true;
-                }, 2000);
+                setTimeout(function () {gameServer.lleaderboard = true;},2000);
                 console.log("[PMSG] The board has been reset");
                 r++;
                 if (r > re) {
@@ -577,9 +629,7 @@ Commands.list = {
                 gameServer.overideauto = false;
                 gameServer.run = true;
                 console.log("[PFMSG] The game has been reset");
-                setTimeout(function() {
-                    gameServer.lleaderboard = true;
-                }, 2000);
+                setTimeout(function () {gameServer.lleaderboard = true;},2000);
                 r++;
                 if (r > re) {
                     console.log("[PFMSG] Done");
@@ -634,9 +684,7 @@ Commands.list = {
             gameServer.overideauto = false;
             gameServer.run = true;
             console.log("[ForceMSG] The game has been reset");
-            setTimeout(function() {
-                gameServer.lleaderboard = true;
-            }, 2000);
+            setTimeout(function () {gameServer.lleaderboard = true;},2000);
         }, 6500);
     },
     msg: function(gameServer, split) {
@@ -660,9 +708,7 @@ Commands.list = {
             gameServer.gameMode.packetLB = gm.packetLB;
             gameServer.gameMode.updateLB = gm.updateLB;
             console.log("[MSG] The board has been reset");
-            setTimeout(function() {
-                gameServer.lleaderboard = true;
-            }, 2000);
+            setTimeout(function () {gameServer.lleaderboard = true;},2000);
 
         }, 14000);
     },
@@ -726,16 +772,16 @@ Commands.list = {
                         client.cells[j].mass = 70;
                     }
 
-                    for (var j in client.cells) {
-                        client.cells[j].calcMergeTime(10000);
+                    
+                        client.norecombine = true;
 
-                    }
+                    
 
                 }, 1000);
 
             }
         }
-        console.log("[Console] Player " + id + " Was Trolled")
+        console.log("[Console] Player " + id + " Was Trolled");
 
     },
     nojoin: function(gameServer, split) {
@@ -748,12 +794,12 @@ Commands.list = {
         for (var i in gameServer.clients) {
             if (gameServer.clients[i].playerTracker.pID == id) {
                 var client = gameServer.clients[i].playerTracker;
-                for (var j in client.cells) {
-                    client.cells[j].calcMergeTime(100000);
-                }
+                
+                    client.norecombine = true;
+                
             }
         }
-        console.log("That player cannot recombine now")
+        console.log("That player cannot recombine now");
     },
     merge: function(gameServer, split) {
         // Validation checks
@@ -767,9 +813,9 @@ Commands.list = {
         for (var i in gameServer.clients) {
             if (gameServer.clients[i].playerTracker.pID == id) {
                 var client = gameServer.clients[i].playerTracker;
-                for (var j in client.cells) {
-                    client.cells[j].calcMergeTime(-1000);
-                }
+                
+                    client.recombineinstant = true;
+                
 
                 console.log("[Console] Forced " + client.name + " to merge cells");
                 break;
@@ -781,7 +827,7 @@ Commands.list = {
         if (isNaN(add)) {
             add = 1; // Adds 1 bot if user doesnt specify a number
         }
-        gameServer.livestage = 2;
+       gameServer.livestage = 2;
         gameServer.liveticks = 0;
         for (var i = 0; i < add; i++) {
             gameServer.bots.addBot();
@@ -815,6 +861,33 @@ Commands.list = {
         else
             console.log("[Console] Only " + removed + " bots could be kicked");
     },
+    killbots: function(gameServer, split) {
+        var toRemove = parseInt(split[1]);
+        if (isNaN(toRemove)) {
+            toRemove = -1; // Kick all bots if user doesnt specify a number
+        }
+
+        var removed = 0;
+        var i = 0;
+        while (i < gameServer.clients.length && removed != toRemove) {
+            if (typeof gameServer.clients[i].remoteAddress == 'undefined') { // if client i is a bot kick him
+                var client = gameServer.clients[i].playerTracker;
+                var len = client.cells.length;
+                for (var j = 0; j < len; j++) {
+                    gameServer.removeNode(client.cells[0]);
+                }
+                removed++;
+                i++;
+            } else 
+                i++;
+        }
+        if (toRemove == -1)
+            console.log("[Console] Killed all bots (" + removed + ")");
+        else if (toRemove == removed)
+            console.log("[Console] Killed " + toRemove + " bots");
+        else
+            console.log("[Console] Only " + removed + " bots could be killed");
+    },
     board: function(gameServer, split) {
         var newLB = [];
         for (var i = 1; i < split.length; i++) {
@@ -838,9 +911,7 @@ Commands.list = {
         gameServer.gameMode.packetLB = gm.packetLB;
         gameServer.gameMode.updateLB = gm.updateLB;
         console.log("[Console] Successfully reset leaderboard");
-        setTimeout(function() {
-            gameServer.lleaderboard = true;
-        }, 2000);
+        setTimeout(function () {gameServer.lleaderboard = true;},2000);
     },
     change: function(gameServer, split) {
         var key = split[1];
@@ -926,9 +997,7 @@ Commands.list = {
                     // Replace functions
                     gameServer.gameMode.packetLB = gm.packetLB;
                     gameServer.gameMode.updateLB = gm.updateLB;
-                    setTimeout(function() {
-                        gameServer.lleaderboard = true;
-                    }, 2000);
+                    setTimeout(function () {gameServer.lleaderboard = true;},2000);
                 }, 14000);
 
                 setTimeout(function() {
@@ -990,7 +1059,11 @@ Commands.list = {
                 for (var j = 0; j < len; j++) {
                     gameServer.removeNode(client.cells[0]);
                 }
-                client.socket.close();
+                if (client.socket.remoteAddress) {
+                gameServer.nospawn[client.socket.remoteAddress] = true;
+                } else {
+                    client.socket.close();
+                }
                 console.log("[Console] Kicked " + client.name);
                 break;
             }
@@ -1063,7 +1136,7 @@ Commands.list = {
         }
     },
     highscore: function(gameServer, split) {
-        console.log("High score: " + gameServer.topscore + " By " + gameServer.topusername);
+        console.log("High score: "+ gameServer.topscore+ " By " + gameServer.topusername);
     },
     killall: function(gameServer, split) {
         var count = 0;
@@ -1114,14 +1187,38 @@ Commands.list = {
             console.log("[Console] Please type a valid name");
             return;
         }
+        var premium = "";
+        if (name.substr(0, 1) == "<") {
+                // Premium Skin
+                var n = name.indexOf(">");
+                if (n != -1) {
+                    
+                    premium = '%' + name.substr(1, n - 1);
+                    name = name.substr(n + 1);
+                }
+            } else if (name.substr(0, 1) == "[") {
+                // Premium Skin
+                var n = name.indexOf("]");
+                if (n != -1) {
+                    
+                    premium = ':http://' + name.substr(1, n - 1);
+                    name = name.substr(n + 1);
+                }
+            } 
 
         // Change name
         for (var i = 0; i < gameServer.clients.length; i++) {
             var client = gameServer.clients[i].playerTracker;
 
             if (client.pID == id) {
+                if (premium) {
+                    client.premium = premium;
+                    console.log("[Console] Changeing their skin to " + premium);
+                }
+                if (name.length > 0) {
                 console.log("[Console] Changing " + client.name + " to " + name);
                 client.name = name;
+                }
                 return;
             }
         }
@@ -1190,6 +1287,39 @@ Commands.list = {
 
         var s = gameServer.run ? "Unpaused" : "Paused";
         console.log("[Console] " + s + " the game.");
+    },
+    rainbow: function(gameServer, split) {
+        var id = parseInt(split[1]);
+        if (isNaN(id)) {
+            console.log("[Console] Please specify a player!");
+              return;
+        }
+        if (!gameServer.clients[id-1]) {
+            console.log("[Console] Client is nonexistent!");
+              return;
+        }
+        for (var i in gameServer.clients) {
+            if (gameServer.clients[i].playerTracker.pID == id) {
+                var client = gameServer.clients[i].playerTracker;
+                if (client.rainbowon) {
+                    client.rainbowon = false;
+                 for (var j in client.cells) {
+                    gameServer.rnodes[client.cells[j].nodeId] = [];
+                     client.cells[j].color = client.color;
+                }  
+                    console.log("[Console] Removed rainbow effect for " + client.name);
+                } else {
+                client.rainbowon = true;
+                for (var j in client.cells) {
+                    gameServer.rnodes[client.cells[j].nodeId] = client.cells[j];
+                }
+                     console.log("[Console] Added rainbow effect for " + client.name);
+                }
+                break;
+            }
+        }
+        
+        
     },
     reload: function(gameServer) {
         gameServer.loadConfig();

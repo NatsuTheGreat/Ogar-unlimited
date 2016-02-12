@@ -3,6 +3,7 @@ module.exports = {
     FFA: require('./FFA'),
     Teams: require('./Teams'),
     Experimental: require('./Experimental'),
+    Experimental2: require('./Experimental v2'),
     Tournament: require('./Tournament'),
     HungerGames: require('./HungerGames'),
     Rainbow: require('./Rainbow'),
@@ -85,6 +86,9 @@ var get = function(id) {
             break;
         case 22: // BlackHole
             mode = new module.exports.BlackHole();
+            break;
+        case 8: // Experimental v2 
+            mode = new module.exports.Experimental2();
             break;
         default: // FFA is default
             mode = new module.exports.FFA();

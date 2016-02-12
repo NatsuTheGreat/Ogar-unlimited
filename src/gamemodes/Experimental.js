@@ -21,7 +21,10 @@ function Experimental() {
     this.motherCellMass = 222;
     this.motherUpdateInterval = 5; // How many ticks it takes to update the mother cell (1 tick = 50 ms)
     this.motherSpawnInterval = 100; // How many ticks it takes to spawn another mother cell - Currently 5 seconds
-    this.motherMinAmount = 5;
+       
+ 
+     this.motherMinAmount = 6;
+ 
 }
 
 module.exports = Experimental;
@@ -89,6 +92,10 @@ Experimental.prototype.spawnMotherCell = function(gameServer) {
 Experimental.prototype.onServerInit = function(gameServer) {
     // Called when the server starts
     gameServer.run = true;
+    var mapSize = gameServer.config.borderLeft + gameServer.config.borderRight +
+       gameServer.config.borderTop + gameServer.config.borderRight;
+ 
+     this.motherMinAmount = Math.ceil(mapSize / 3194.382825); // 7 mother cells for agar.io map size
     gameServer.lleaderboard = true;
     // Special virus mechanics
     Virus.prototype.feed = function(feeder, gameServer) {

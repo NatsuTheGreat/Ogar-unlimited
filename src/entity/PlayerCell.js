@@ -4,7 +4,10 @@ function PlayerCell() {
     Cell.apply(this, Array.prototype.slice.call(arguments));
 
     this.cellType = 0;
-    this.recombineTicks = 0; // Ticks until the cell can recombine with other cells 
+    this.skin;
+    this.recombineTicks = 0; // Ticks passed after the cell has split
+    this.shouldRecombine = false; // Should the cell combine. If true, collision with own cells happens
+    
     this.ignoreCollision = false; // This is used by player cells so that they dont cause any problems when splitting
     this.restoreCollisionTicks = 0; // Ticks after which collision is restored on a moving cell
 }
@@ -45,7 +48,17 @@ PlayerCell.prototype.simpleCollide = function(x1, y1, check, d) {
 };
 
 PlayerCell.prototype.calcMergeTime = function(base) {
-    this.recombineTicks = base + ((0.02 * this.mass) >> 0); // Int (30 sec + (.02 * mass))
+    // The recombine mechanic has been completely revamped.
+    // As time passes on, recombineTicks gets larger, instead of getting smaller.
+    // When the owner has only 1 cell, ticks and shouldRecombine will be reset by gameserver.
+    var r = false;
+    if (base == 0 || this.owner.recombineinstant) {
+        r = true; // If base recombine time is 0, instantly recombine
+    } else {
+        var rec = Math.floor(base + ((0.02 * this.mass))); // base seconds + 0.02% of mass
+        if (this.recombineTicks > rec) r = true; // Can combine with other cells
+    }
+    this.shouldRecombine = r;
 };
 
 // Movement
@@ -81,7 +94,7 @@ PlayerCell.prototype.calcMove = function(x2, y2, gameServer) {
             continue;
         }
 
-        if ((cell.recombineTicks > 0) || (this.recombineTicks > 0)) {
+        if ((!cell.shouldRecombine) || (!this.shouldRecombine)) {
             // Cannot recombine - Collision with your own cells
             var collisionDist = cell.getSize() + r; // Minimum distance between the 2 cells
             dist = this.getDist(x1, y1, cell.position.x, cell.position.y); // Distance between these two cells
@@ -145,8 +158,8 @@ PlayerCell.prototype.getEatingRange = function() {
 
 PlayerCell.prototype.onConsume = function(consumer, gameServer) {
     // Add an inefficiency for eating other players' cells
-    var factor = (consumer.owner === this.owner ? 1 : gameServer.config.massAbsorbedPercent / 100);
-    consumer.addMass(factor * this.mass);
+   var factor = ( consumer.owner === this.owner ? 1 : gameServer.config.massAbsorbedPercent/100 );
+     consumer.addMass(factor * this.mass);
 };
 
 PlayerCell.prototype.onAdd = function(gameServer) {

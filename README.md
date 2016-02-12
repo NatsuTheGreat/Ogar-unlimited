@@ -1,4 +1,4 @@
-# Ogar unlimited - More features such as GameModes, OP, Commands, Anti-Bot Measures,Live Console and more!
+# Ogar unlimited - SKINS ARE HERE - More features such as GameModes, OP, Commands, Anti-Bot Measures,Live Console and more!
 A fully functional open source Agar.io server implementation, written in Node.js. Ogar Unlimited is designed to be used with the latest Agar.io client. THIS IS A FORK OF THE ORIGINAL OGAR BUT THIS HAS MORE FEATURES, also, I borrowed from other forks: Kickbots,merge (edited by me),killrange(edited by me),kickrange(edited by me) commands and the nocollision game modes. Every other Extra feature I created.
 
 This Modified copy was created to help those who want to open their server to the public. I will add more features like remote control similar to pocket dock console in pocketmine (maybe) im also probably going to add more commands and I will also add more things in OP. I am currently working on better Agar.io Physics. I will try to make the physics very much like the Official Agar.io physics
@@ -22,6 +22,7 @@ This Modified copy was created to help those who want to open their server to th
  12. Colortext command (Changes console output color and style)
  13. Live Console (see gameserver.ini, where a live console appears) NOTE: this is way different that Ogarserv's Console
  14. Restart. Make it restart automatically or restart manually, Only works if use windows start script
+ 15. skins, to use custom skins, do <skinname> and then your name. for example `<spy> lol` will give you spy skin with name of lol use `[website]` to use a custom skin from a website (you need to use a url shortener though)
  
 (You can see all new features added [here] (https://github.com/AJS-development/Ogar-unlimited/blob/master/Newfeatures.md))
 
@@ -37,7 +38,7 @@ The official website for the Ogar Project is [ogarproject.com](http://ogarprojec
 If you've purchased a copy of Ogar, you've probably been SERIOUSLY ripped off. [This post on our website explains why.](http://ogarproject.com/threads/psa-if-you-purchased-ogar-youve-been-ripped-off.6/)
 
 ### OP(2.4.5) - Guide,
-You use OP by first setting who has OP by doing op [id] in console. Then, that player can use the op features in game by pressing "Q". Then a "C" will appear next to your name. If you press w in this state, it gives you 100 more mass. If you press space in this state, you will be able to rejoin instantly. You will find out that if you press "Q" again, two c's will appear next to your name. If you press w in this state, you shoot viruses. If you press space in this state, you shoot tiny things (almost invisible) that if someone eats, their mass is reduced by 100. Then, if you press "Q" again, 3 c's will appear. Press w with 3c's, you shoot a virus, but whoever who eats it will be trolled :). If you press space with 3 c's the person who eats the virus will be killed. You can then exit OP by pressing q again after doing an action or by pressing Q until the three c's will disappear (so that you can normally split and shoot mass).
+You use OP by first setting who has op by doing op [id] in console. Then, that player can use the op features in game by pressing q. Then a c will appear next to your name. If you press w in this state, it gives you 100 more mass. If you press space in this state, you will be able to rejoin instantly. You will find out that if you press q again, two c's will appear next to your name. if you press w in this state, you shoot viruses. If you press space in this state, you shoot tiny things (almost invisible) that if someone eats, their mass is reduced by 100. Then, if you press q again,3 c's will appear.press w with 3c's, you shoot a virus, but whoever who eats it will be trolled :). If you press space with 3 c's the person who eats the virus will be killed.If you  press q again, 4 cs will appear and if you press w, you will shoot a virus tha explodes people and space, it shoots a kick virus. You can then exit op by pressing q again after doing an action or by pressing Q until the three c's will dissappear (so that you can normally split and shoot mass).
 
 * Note: names (CC's) dont work when player name is blank and it doesnt work on Virus and Leap gamemodes
 
@@ -68,6 +69,7 @@ Id   | Name
 0    | Free For All
 1    | Teams
 2    | Experimental (As of 6/13/15)
+8    | Experimental v2
 3    | Timed FFA
 4    | Virus Off (no virus's)
 7    | Shrinking FFA, Shrinks the game as time passes
@@ -95,6 +97,8 @@ The current available console commands are listed here. Command names are not ca
    * Shows how to use OP
  - Announce
    * Starts the high score announce feature
+ - Explode [id]
+   * explodes player
  - Split [ID] [Count]
    * Splits a player
  - Shrink [amount]
@@ -119,8 +123,12 @@ The current available console commands are listed here. Command names are not ca
    * Bans an IP and sends a MSG
  - Unban [IP]
    * Unbans an IP
+ - Rainbow [id]
+   * gives player rainbow effect
  - Kickbots [number]
    * Kicks a number of bots (leave field blank and it will kick all bots)
+ - Killbots [number]
+   * Kills a number of bots (leave field blank and it will kick all bots)
  - Restart [minutes]
    * Restarts the server after a number of minutes or if you leave min blank, restarts immediatly
  - Banlist
@@ -196,3 +204,7 @@ The current available console commands are listed here. Command names are not ca
 
 ## Contributing
 Just make a pull request or make your own copy
+
+## Things that I dont want you to copy (like to normal ogar)
+1. No-Lag antibot measures
+2. OP

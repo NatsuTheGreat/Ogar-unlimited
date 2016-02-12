@@ -16,6 +16,27 @@ console.log("      (_____|                                                      
 
 console.log("\x1b[32m[Game] Ogar Unlimited - An open source Agar.io server implementation");
 console.log("[Game] By The AJS development team\x1b[0m");
+var request = require('request');
+request('http://raw.githubusercontent.com/AJS-development/verse/master/update', function (error, response, body) {
+  if (!error && response.statusCode == 200) {
+    
+      // Show the HTML for the Google homepage. 
+      if (body.replace('\n','') != "3.1.5") {
+          
+      console.log("\x1b[31m[Console] We have detected a update, Current version: 3.1.5 ,Available: "+ body.replace('\n','') + "\x1b[0m");
+      }
+  }
+});
+request('https://raw.githubusercontent.com/AJS-development/verse/master/msg', function (error, response, body) {
+  if (!error && response.statusCode == 200) {
+    
+      // Show the HTML for the Google homepage. 
+      if (body.replace('\n','') != "") {
+          
+      console.log("\x1b[32m[Console] We recieved a world-wide message!: "+ body.replace('\n','') + "\x1b[0m");
+      }
+  }
+})
 // Handle arguments
 process.argv.forEach(function(val) {
     if (val == "--noconsole") {
