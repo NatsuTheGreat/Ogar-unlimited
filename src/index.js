@@ -6,38 +6,29 @@ var GameServer = require('./GameServer');
 var showConsole = true;
 
 // Start msg
-console.log("\x1b[1m\x1b[0m                                        _ _       _              _ ");
+console.log("\u001B[33m                                        _ _       _              _ ");
 console.log("                                       | (_)     (_)_           | |");
 console.log("  ___   ____  ____  ____    _   _ ____ | |_ ____  _| |_  ____ _ | |");
 console.log(" / _ \\ / _  |/ _  |/ ___)  | | | |  _ \\| | |    \\| |  _)/ _  ) || |");
 console.log("| |_| ( ( | ( ( | | |      | |_| | | | | | | | | | | |_( (/ ( (_| |");
 console.log(" \\___/ \\_|| |\\_||_|_|       \\____|_| |_|_|_|_|_|_|_|\\___)____)____|");
-console.log("      (_____|                                                      ");
+console.log("      (_____|                                                      \u001B[0m");
 
 console.log("\x1b[32m[Game] Ogar Unlimited - An open source Agar.io server implementation");
 console.log("[Game] By The AJS development team\x1b[0m");
+console.log("[Game] Server version is 9.0.2");
 var request = require('request');
-request('http://raw.githubusercontent.com/AJS-development/verse/master/update', function (error, response, body) {
-  if (!error && response.statusCode == 200) {
-    
-      // Show the HTML for the Google homepage. 
-      if (body.replace('\n','') != "3.1.5") {
-          
-      console.log("\x1b[31m[Console] We have detected a update, Current version: 3.1.5 ,Available: "+ body.replace('\n','') + "\x1b[0m");
-      }
-  }
-});
-request('https://raw.githubusercontent.com/AJS-development/verse/master/msg', function (error, response, body) {
-  if (!error && response.statusCode == 200) {
-    
-      // Show the HTML for the Google homepage. 
-      if (body.replace('\n','') != "") {
-          
-      console.log("\x1b[32m[Console] We recieved a world-wide message!: "+ body.replace('\n','') + "\x1b[0m");
-      }
-  }
-})
-// Handle arguments
+request('https://raw.githubusercontent.com/AJS-development/verse/master/msg', function(error, response, body) {
+        if (!error && response.statusCode == 200) {
+            if (body.replace('\n', '') != "") {
+
+                console.log("\x1b[32m[Console] We recieved a world-wide message!: " + body.replace('\n', '') + "\x1b[0m");
+            }
+        } else {
+            console.log("[Console] Could not connect to servers. Aborted checking for updates and messages");
+        }
+    })
+    // Handle arguments
 process.argv.forEach(function(val) {
     if (val == "--noconsole") {
         showConsole = false;

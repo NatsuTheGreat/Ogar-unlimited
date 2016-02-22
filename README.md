@@ -1,5 +1,7 @@
-# Ogar unlimited - SKINS ARE HERE - More features such as GameModes, OP, Commands, Anti-Bot Measures,Live Console and more!
-A fully functional open source Agar.io server implementation, written in Node.js. Ogar Unlimited is designed to be used with the latest Agar.io client. THIS IS A FORK OF THE ORIGINAL OGAR BUT THIS HAS MORE FEATURES, also, I borrowed from other forks: Kickbots,merge (edited by me),killrange(edited by me),kickrange(edited by me) commands and the nocollision game modes. Every other Extra feature I created.
+# NOTE: PLEASE UPDATE YOUR FORKS AND YOUR SERVERS BECAUSE THE LICENSE CHANGED TO CONFORM WITH THE LAW
+
+# Ogar unlimited - More features such as Skins,Skinshortcuts,GameModes, OP, Commands, Anti-Bot Measures,minions,Live Console and more!
+A fully functional open source Agar.io server implementation, written in Node.js. Ogar Unlimited is designed to be used with the latest Agar.io client. THIS IS A FORK OF THE ORIGINAL OGAR BUT THIS HAS MORE FEATURES, also, I borrowed from other forks: Kickbots, merge (edited by me), killrange(edited by me), kickrange(edited by me) commands and the nocollision game modes. Every other Extra feature I created.
 
 This Modified copy was created to help those who want to open their server to the public. I will add more features like remote control similar to pocket dock console in pocketmine (maybe) im also probably going to add more commands and I will also add more things in OP. I am currently working on better Agar.io Physics. I will try to make the physics very much like the Official Agar.io physics
 
@@ -18,11 +20,13 @@ This Modified copy was created to help those who want to open their server to th
  8. Autoban option (see gameserver.ini)
  9. More control (gameserver.ini)
  10. and other features such as merge or nojoin or kick/killrange
- 11. Better physics (ejected mass and split)
+ 11. Better physics (ejected mass and split and virus)
  12. Colortext command (Changes console output color and style)
  13. Live Console (see gameserver.ini, where a live console appears) NOTE: this is way different that Ogarserv's Console
  14. Restart. Make it restart automatically or restart manually, Only works if use windows start script
  15. skins, to use custom skins, do <skinname> and then your name. for example `<spy> lol` will give you spy skin with name of lol use `[website]` to use a custom skin from a website (you need to use a url shortener though)
+ 16. customskins (see custom skins)
+ 17. Minions: you can turn your server bots into minions. press q to enter minion control mode (a b will appear next to your name). w = eject, space = split. press q again to exit
  
 (You can see all new features added [here] (https://github.com/AJS-development/Ogar-unlimited/blob/master/Newfeatures.md))
 
@@ -37,16 +41,25 @@ The official website for the Ogar Project is [ogarproject.com](http://ogarprojec
 ### Purchased Ogar?
 If you've purchased a copy of Ogar, you've probably been SERIOUSLY ripped off. [This post on our website explains why.](http://ogarproject.com/threads/psa-if-you-purchased-ogar-youve-been-ripped-off.6/)
 
+### Minions
+You use minions by first adding bots with the addbot command. Then in console, you do `minion [id]` to turn your bots into your minions the id field is your id. Then, they will start following your mouse. You can control those minions by useing the q key. If you press it, a B will appear next to your name. then controls will be normal except now ejecting and splitting will happen on your minions not you. you can reenter normal control mode by pressing q again. You can disable minions by doing `minion` in console
+
 ### OP(2.4.5) - Guide,
-You use OP by first setting who has op by doing op [id] in console. Then, that player can use the op features in game by pressing q. Then a c will appear next to your name. If you press w in this state, it gives you 100 more mass. If you press space in this state, you will be able to rejoin instantly. You will find out that if you press q again, two c's will appear next to your name. if you press w in this state, you shoot viruses. If you press space in this state, you shoot tiny things (almost invisible) that if someone eats, their mass is reduced by 100. Then, if you press q again,3 c's will appear.press w with 3c's, you shoot a virus, but whoever who eats it will be trolled :). If you press space with 3 c's the person who eats the virus will be killed.If you  press q again, 4 cs will appear and if you press w, you will shoot a virus tha explodes people and space, it shoots a kick virus. You can then exit op by pressing q again after doing an action or by pressing Q until the three c's will dissappear (so that you can normally split and shoot mass).
+You use OP by first setting who has op by doing op [id] in console. Then, that player can use the op features in game by pressing q. Then a c will appear next to your name. If you press w in this state, it gives you 100 more mass. If you press space in this state, you will be able to rejoin instantly. You will find out that if you press q again, two c's will appear next to your name. if you press w in this state, you shoot viruses. If you press space in this state, you shoot tiny things (almost invisible) that if someone eats, their mass is reduced by 100. Then, if you press q again,3 c's will appear.press w with 3c's, you shoot a virus, but whoever who eats it will be trolled :). If you press space with 3 c's the person who eats the virus will explode.If you  press q again, 4 cs will appear and if you press w, you will shoot a virus tha kills people and space, it shoots a kick virus. You can then exit op by pressing q again after doing an action or by pressing Q until the three c's will dissappear (so that you can normally split and shoot mass).
 
 * Note: names (CC's) dont work when player name is blank and it doesnt work on Virus and Leap gamemodes
 
+## Custom skins (guide)
+You can use custom skins by putting them in customskins.txt
+the format is `[shortcut] [skin]` for the skin field, to use a URL skin, you do `:http://url` DO NOT FORGET TO GET REID OF THE S IF IT IS HTTPS OR FORGET TO PUT A : BEFORE.To use an agario skin, use `%skinname`To use that skin in game simply do `<skinsshortuct>` and then your name,
+
+You can see a more detailed guide on the [wiki] (https://github.com/AJS-development/Ogar-unlimited/wiki/Skins-and-skin-shortcuts)
+
 ## Obtaining and Using
 
-As Ogar Unlimited is written in Node.js, you must have Node.js and its "ws" module installed to use it (unless you are using the Windows binary). You can usually download Node using your distribution's package manager (for *nix-like systems), or from [the Node website](http://nodejs.org). To install the "ws" module that is required, open up your system command line (cmd for windows, terminal for mac) and type "npm install ws". If you are on Linux, you can use the install script which would also automatically install node.js and ws. To see a detailed guide go to the [Installation guide] (https://github.com/AJS-development/Ogar-unlimited/wiki/Installation) in the wiki
+As Ogar Unlimited is written in Node.js, you must have Node.js and its "ws", and "request" module installed to use it (unless you are using the Windows binary). You can usually download Node using your distribution's package manager (for *nix-like systems), or from [the Node website](http://nodejs.org). To install the "ws" and "request" module that is required, open up your system command line (cmd for windows, terminal for mac) and type "npm install ws" and do "npm install request". To see a detailed guide go to the [Installation guide] (https://github.com/AJS-development/Ogar-unlimited/wiki/Installation) in the wiki
 
-(You can install and use Ogar unlimited on windows very quickly. First click `InstallWS.bat` in src. Then wait (it takes a while), then click `ClickToStart.bat` and you're off! The next time you start the server, you only have to click `ClickToStart.bat`)
+(You can install and use Ogar unlimited on windows very quickly. First click `InstallWebSocket.bat` in src. Then wait (it takes a while), then click `Start.bat` and you're off! The next time you start the server, you only have to click `Start.bat`)
 
 (Binarys are also available in Releases)
 
@@ -97,6 +110,12 @@ The current available console commands are listed here. Command names are not ca
    * Shows how to use OP
  - Announce
    * Starts the high score announce feature
+ - Minion [id]
+   * Turns your server bots into your minions. to turn off, leave id empty
+ - Update
+   * gets current version of ogar unlimited and replaces the old with the new
+ - Changelog [page]
+   * Gets changelog from the servers
  - Explode [id]
    * explodes player
  - Split [ID] [Count]
@@ -205,6 +224,6 @@ The current available console commands are listed here. Command names are not ca
 ## Contributing
 Just make a pull request or make your own copy
 
-## Things that I dont want you to copy (like to normal ogar)
+## Things that I dont want you to copy (copying it to your own file or fork)
 1. No-Lag antibot measures
 2. OP

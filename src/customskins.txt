@@ -1,0 +1,4 @@
+urlexample :http//:someurl
+ingameexample %spy
+darkspy :http://i.imgur.com/OZdYBGu.png
+maxrage :http://i.imgur.com/oAOUyY0.gif

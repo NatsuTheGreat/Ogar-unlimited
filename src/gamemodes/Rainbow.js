@@ -150,22 +150,21 @@ Rainbow.prototype.changeColor = function(node) {
 
     node.color = this.colors[node.rainbow];
     node.rainbow += this.speed;
-}
+};
 
 // Override
 
 Rainbow.prototype.onServerInit = function() {
     // Overrides the update function
-    gameServer.lleaderboard = true;
     Food.prototype.sendUpdate = function() {
         return true;
     };
-}
+};
 
 Rainbow.prototype.onChange = function() {
     // Reset
     Food.prototype.sendUpdate = FoodUp;
-}
+};
 
 Rainbow.prototype.onTick = function(gameServer) {
     var color, node;

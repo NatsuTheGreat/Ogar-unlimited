@@ -7,7 +7,7 @@ function PlayerCell() {
     this.skin;
     this.recombineTicks = 0; // Ticks passed after the cell has split
     this.shouldRecombine = false; // Should the cell combine. If true, collision with own cells happens
-    
+
     this.ignoreCollision = false; // This is used by player cells so that they dont cause any problems when splitting
     this.restoreCollisionTicks = 0; // Ticks after which collision is restored on a moving cell
 }
@@ -109,7 +109,9 @@ PlayerCell.prototype.calcMove = function(x2, y2, gameServer) {
                 // Strength however depends on cell1 speed divided by cell2 speed
                 var c1Speed = this.getSpeed();
                 var c2Speed = cell.getSpeed();
-                var mult = 0.9 // Limit from 0.5 to 2, not to have bugs
+                var mult = c1Speed / c2Speed / 2;
+                    if (mult < 0.15) mult = 0.15;
+                    if (mult > 0.9) mult = 0.9;
 
                 var newDeltaY = y1 - cell.position.y;
                 var newDeltaX = x1 - cell.position.x;
@@ -132,18 +134,18 @@ PlayerCell.prototype.calcMove = function(x2, y2, gameServer) {
 
     gameServer.gameMode.onCellMove(x1, y1, this);
 
-    // Check to ensure we're not passing the world border
-    if (x1 < config.borderLeft) {
-        x1 = config.borderLeft;
+    // Check to ensure we're not passing the world border (shouldn't get closer than a quarter of the cell's diameter)
+    if (x1 < config.borderLeft + r / 2) {
+        x1 = config.borderLeft + r / 2;
     }
-    if (x1 > config.borderRight) {
-        x1 = config.borderRight;
+    if (x1 > config.borderRight - r / 2) {
+        x1 = config.borderRight - r / 2;
     }
-    if (y1 < config.borderTop) {
-        y1 = config.borderTop;
+    if (y1 < config.borderTop + r / 2) {
+        y1 = config.borderTop + r / 2;
     }
-    if (y1 > config.borderBottom) {
-        y1 = config.borderBottom;
+    if (y1 > config.borderBottom - r / 2) {
+        y1 = config.borderBottom - r / 2;
     }
 
     this.position.x = x1 >> 0;
@@ -158,8 +160,8 @@ PlayerCell.prototype.getEatingRange = function() {
 
 PlayerCell.prototype.onConsume = function(consumer, gameServer) {
     // Add an inefficiency for eating other players' cells
-   var factor = ( consumer.owner === this.owner ? 1 : gameServer.config.massAbsorbedPercent/100 );
-     consumer.addMass(factor * this.mass);
+    var factor = (consumer.owner === this.owner ? 1 : gameServer.config.massAbsorbedPercent / 100);
+    consumer.addMass(factor * this.mass);
 };
 
 PlayerCell.prototype.onAdd = function(gameServer) {

@@ -9,9 +9,11 @@ function StickyCell() {
     this.agitated = 1; // Drawing purposes
     this.acquired = undefined;
     this.radius = this.getSize();
-    this.color = {r: 190 + Math.floor(48*Math.random()),
-                  g: 70 + Math.floor(48*Math.random()),
-                  b: 85 + Math.floor(48*Math.random())};
+    this.color = {
+        r: 190 + Math.floor(48 * Math.random()),
+        g: 70 + Math.floor(48 * Math.random()),
+        b: 85 + Math.floor(48 * Math.random())
+    };
     //this.setMoveEngineData(1, Infinity, 1);
 }
 
@@ -19,8 +21,8 @@ module.exports = StickyCell;
 StickyCell.prototype = new Cell();
 
 StickyCell.prototype.update = function(gameServer) {
-    if(this.acquired) {
-        if(this.acquired.killedBy) {
+    if (this.acquired) {
+        if (this.acquired.killedBy) {
             // Cell was killed and we need to free it
         }
 
@@ -39,10 +41,10 @@ StickyCell.prototype.update = function(gameServer) {
 
         // Gradually degrade in color
         if (this.color.r > 160) this.color.r *= 0.999;
-        if (this.color.g > 40)  this.color.g *= 0.999;
-        if (this.color.b > 55)  this.color.b *= 0.999;
+        if (this.color.g > 40) this.color.g *= 0.999;
+        if (this.color.b > 55) this.color.b *= 0.999;
     }
-	// Special virus mechanics
+    // Special virus mechanics
     StickyCell.prototype.feed = function(feeder, gameServer) {
         gameServer.removeNode(feeder);
         // Pushes the virus
@@ -63,19 +65,21 @@ StickyCell.prototype.update = function(gameServer) {
         // Do boundary (non-absorbing) collision check
         var collisionDist = check.getSize() + this.radius;
 
-        if(!check.simpleCollide(check.position.x, check.position.y,this,collisionDist)) {
+        if (!check.simpleCollide(check.position.x, check.position.y, this, collisionDist)) {
             check.agitated = false;
             continue;
         }
-        
-        // Take away mass from colliders
-        if(check.mass > 10) { check.mass *= 0.9975; }
 
-        if(!this.acquired) {
+        // Take away mass from colliders
+        if (check.mass > 10) {
+            check.mass *= 0.9975;
+        }
+
+        if (!this.acquired) {
             // Acquire victim cell if no victim acquired
             this.acquired = check;
-        } else if(check != this.acquired &&
-                  check.mass > this.acquired.mass) {
+        } else if (check != this.acquired &&
+            check.mass > this.acquired.mass) {
             // Acquire new victim, if their mass is greater than current victims mass
             this.acquired = check;
         }
@@ -92,9 +96,11 @@ StickyCell.prototype.onConsume = function(consumer, gameServer) {
 
     // LOSE mass if it is attached to us, gain otherwise
     // (subtract twice because virusOnConsume already adds mass)
-    if(this.acquired && consumer.owner == this.acquired.owner) {
-        consumer.mass -= 2*this.mass;
-        if(consumer.mass < 10) { consumer.mass = 10; }
+    if (this.acquired && consumer.owner == this.acquired.owner) {
+        consumer.mass -= 2 * this.mass;
+        if (consumer.mass < 10) {
+            consumer.mass = 10;
+        }
     }
 }
 
@@ -103,7 +109,7 @@ StickyCell.prototype.virusOnConsume = Virus.prototype.onConsume;
 StickyCell.prototype.onRemove = function(gameServer) {
     var index = gameServer.gameMode.nodesSticky.indexOf(this);
     if (index != -1) {
-        gameServer.gameMode.nodesSticky.splice(index,1);
+        gameServer.gameMode.nodesSticky.splice(index, 1);
     }
 };
 

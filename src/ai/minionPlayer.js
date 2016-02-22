@@ -1,6 +1,6 @@
 var PlayerTracker = require('../PlayerTracker');
 
-function BotPlayer() {
+function minionPlayer() {
     PlayerTracker.apply(this, Array.prototype.slice.call(arguments));
     //this.color = gameServer.getRandomColor();
 
@@ -27,12 +27,12 @@ function BotPlayer() {
     };
 }
 
-module.exports = BotPlayer;
-BotPlayer.prototype = new PlayerTracker();
+module.exports = minionPlayer;
+minionPlayer.prototype = new PlayerTracker();
 
 // Functions
 
-BotPlayer.prototype.getLowestCell = function() {
+minionPlayer.prototype.getLowestCell = function() {
     // Gets the cell with the lowest mass
     if (this.cells.length <= 0) {
         return null; // Error!
@@ -50,7 +50,7 @@ BotPlayer.prototype.getLowestCell = function() {
 
 // Don't override, testing to use more accurate way.
 /*
-BotPlayer.prototype.updateSightRange = function() { // For view distance
+minionPlayer.prototype.updateSightRange = function() { // For view distance
     var range = 1000; // Base sight range
 
     if (this.cells[0]) {
@@ -61,7 +61,7 @@ BotPlayer.prototype.updateSightRange = function() { // For view distance
     this.sightRangeY = range;
 }; */
 
-BotPlayer.prototype.update = function() { // Overrides the update function from player tracker
+minionPlayer.prototype.update = function() { // Overrides the update function from player tracker
     // Remove nodes from visible nodes if possible
     for (var i = 0; i < this.nodeDestroyQueue.length; i++) {
         var index = this.visibleNodes.indexOf(this.nodeDestroyQueue[i]);
@@ -72,17 +72,12 @@ BotPlayer.prototype.update = function() { // Overrides the update function from 
 
     // Respawn if bot is dead
     if (this.cells.length <= 0) {
-        if (this.gameServer.config.botrespawn == 1) {
             this.gameServer.gameMode.onPlayerSpawn(this.gameServer, this);
             if (this.cells.length == 0) {
                 // If the bot cannot spawn any cells, then disconnect it
                 this.socket.close();
                 return;
             }
-        } else {
-            this.socket.close();
-            return;
-        }
     }
 
     // Update
@@ -129,7 +124,7 @@ BotPlayer.prototype.update = function() { // Overrides the update function from 
                 if (cell.mass > (check.mass * 1.33)) {
                     // Add to prey list
                     this.prey.push(check);
-                } else if (check.mass > (cell.mass * 1.33) && (check.owner.mouse != this.gameServer.miniontarget || !this.gameServer.minion)) {
+                } else if (check.mass > (cell.mass * 1.33) && check.owner.mouse != this.owner.mouse) {
                     // Predator
                     var dist = this.getDist(cell, check) - (r + check.getSize());
                     if (dist < 300) {
@@ -176,7 +171,7 @@ BotPlayer.prototype.update = function() { // Overrides the update function from 
 
 // Custom
 
-BotPlayer.prototype.clearLists = function() {
+minionPlayer.prototype.clearLists = function() {
     this.predators = [];
     this.threats = [];
     this.prey = [];
@@ -185,7 +180,7 @@ BotPlayer.prototype.clearLists = function() {
     this.juke = false;
 };
 
-BotPlayer.prototype.getState = function(cell) {
+minionPlayer.prototype.getState = function(cell) {
     // Continue to shoot viruses
     if (this.gameState == 4) {
         return 4;
@@ -217,56 +212,21 @@ BotPlayer.prototype.getState = function(cell) {
     return 0;
 };
 
-BotPlayer.prototype.decide = function(cell) {
+minionPlayer.prototype.decide = function(cell) {
     // The bot decides what to do based on gamestate
     
     switch (this.gameState) {
         case 0: // Wander
             
-            if (this.gameServer.minion) {
-     this.mouse = this.gameServer.miniontarget;   
+     this.mouse = this.owner.mouse;   
         
-    } else {
-            
-            //console.log("[Bot] "+cell.getName()+": Wandering");
-            if ((this.centerPos.x == this.mouse.x) && (this.centerPos.y == this.mouse.y)) {
-                // Get a new position
-                var index = Math.floor(Math.random() * this.gameServer.nodes.length);
-                var randomNode = this.gameServer.nodes[index];
-                var pos = {
-                    x: 0,
-                    y: 0
-                };
-
-                if ((randomNode.getType() == 3) || (randomNode.getType() == 1)) {
-                    pos.x = randomNode.position.x;
-                    pos.y = randomNode.position.y;
-                } else {
-                    // Not a food/ejected cell
-                    pos = this.gameServer.getRandomPosition();
-                }
-
-                // Set bot's mouse coords to this location
-                this.mouse = {
-                    x: pos.x,
-                    y: pos.y
-                };
-            }
-    }
+ 
             break;
         case 1: // Looking for food
-            if (this.gameServer.minion) {
-     this.mouse = this.gameServer.miniontarget;   
+            
+     this.mouse = this.owner.mouse;   
         
-    } else {
-            //console.log("[Bot] "+cell.getName()+": Getting Food");
-            this.target = this.findNearest(cell, this.food);
-
-            this.mouse = {
-                x: this.target.position.x,
-                y: this.target.position.y
-            };
-    }
+    
             break;
         case 2: // Run from (potential) predators
             var avoid = this.combineVectors(this.predators);
@@ -301,100 +261,15 @@ BotPlayer.prototype.decide = function(cell) {
 
             break;
         case 3: // Target prey
-            if (this.gameServer.minion) {
-     this.mouse = this.gameServer.miniontarget;   
+     this.mouse = this.owner.mouse;   
         
-    } else {
-            if ((!this.target) || (cell.mass < (this.target.mass * 1.33)) || (this.visibleNodes.indexOf(this.target) == -1)) {
-                this.target = this.getBiggest(this.prey);
-            }
-            //console.log("[Bot] "+cell.getName()+": Targeting "+this.target.getName());
-
-            this.mouse = {
-                x: this.target.position.x,
-                y: this.target.position.y
-            };
-
-            var massReq = 1.33 * (this.target.mass * 2); // Mass required to splitkill the target
-
-            if ((cell.mass > massReq) && (this.cells.length < 3)) { // Will not split into more than 2 cells
-                var splitDist = (4 * (cell.getSpeed() * 5)) + (cell.getSize() * 1.75); // Distance needed to splitkill
-                var distToTarget = this.getAccDist(cell, this.target); // Distance between the target and this cell
-
-                if (splitDist >= distToTarget) {
-                    if ((this.threats.length > 0) && (this.getBiggest(this.threats).mass > (cell.mass))) {
-                        // Dont splitkill when they are cells that can possibly eat you after the split
-                        break;
-                    }
-                    // Splitkill
-                    this.gameServer.splitCells(this);
-                }
-            }
-    }
+    
             break;
         case 4: // Shoot virus
-            if (this.gameServer.minion) {
-     this.mouse = this.gameServer.miniontarget;   
+          
+     this.mouse = this.owner.mouse;   
         
-    } else {
-            if ((!this.target) || (!this.targetVirus) || (!this.cells.length == 1) || (this.visibleNodes.indexOf(this.target) == -1) || (this.visibleNodes.indexOf(this.targetVirus) == -1)) {
-                this.gameState = 0; // Reset
-                this.target = null;
-                break;
-            }
-
-            // Make sure target is within range
-            var dist = this.getDist(this.targetVirus, this.target) - (this.target.getSize() + 100);
-            if (dist > 500) {
-                this.gameState = 0; // Reset
-                this.target = null;
-                break;
-            }
-
-            // Find angle of vector between target and virus
-            var angle = this.getAngle(this.target, this.targetVirus);
-
-            // Now reverse the angle
-            var reversed = this.reverseAngle(angle);
-
-            // Get this bot cell's angle
-            var ourAngle = this.getAngle(cell, this.targetVirus);
-
-            // Check if bot cell is in position
-            if ((ourAngle <= (reversed + .25)) && (ourAngle >= (reversed - .25))) {
-                // In position!
-                this.mouse = {
-                    x: this.targetVirus.position.x,
-                    y: this.targetVirus.position.y
-                };
-
-                // Shoot
-                for (var v = 0; v < 7; v++) {
-                    this.gameServer.ejectMass(this);
-                }
-
-                // Back to starting pos
-                this.mouse = {
-                    x: cell.position.x,
-                    y: cell.position.y
-                };
-
-                // Cleanup
-                this.gameState = 0; // Reset
-                this.target = null;
-            } else {
-                // Move to position
-                var r = cell.getSize();
-                var x1 = this.targetVirus.position.x + ((350 + r) * Math.sin(reversed));
-                var y1 = this.targetVirus.position.y + ((350 + r) * Math.cos(reversed));
-                this.mouse = {
-                    x: x1,
-                    y: y1
-                };
-            }
-
-            // console.log("[Bot] "+cell.getName()+": Targeting (virus) "+this.target.getName());
-    }
+    
             break;
         default:
             
@@ -429,7 +304,7 @@ BotPlayer.prototype.decide = function(cell) {
 };
 
 // Finds the nearest cell in list
-BotPlayer.prototype.findNearest = function(cell, list) {
+minionPlayer.prototype.findNearest = function(cell, list) {
     if (this.currentTarget) {
         // Do not check for food if target already exists
         return null;
@@ -450,13 +325,13 @@ BotPlayer.prototype.findNearest = function(cell, list) {
     return shortest;
 };
 
-BotPlayer.prototype.getRandom = function(list) {
+minionPlayer.prototype.getRandom = function(list) {
     // Gets a random cell from the array
     var n = Math.floor(Math.random() * list.length);
     return list[n];
 };
 
-BotPlayer.prototype.combineVectors = function(list) {
+minionPlayer.prototype.combineVectors = function(list) {
     // Gets the angles of all enemies approaching the cell
     var pos = {
         x: 0,
@@ -476,7 +351,7 @@ BotPlayer.prototype.combineVectors = function(list) {
     return pos;
 };
 
-BotPlayer.prototype.checkPath = function(cell, check) {
+minionPlayer.prototype.checkPath = function(cell, check) {
     // Checks if the cell is in the way
 
     // Get angle of vector (cell -> path)
@@ -493,7 +368,7 @@ BotPlayer.prototype.checkPath = function(cell, check) {
     }
 };
 
-BotPlayer.prototype.getBiggest = function(list) {
+minionPlayer.prototype.getBiggest = function(list) {
     // Gets the biggest cell from the array
     var biggest = list[0];
     for (var i = 1; i < list.length; i++) {
@@ -506,7 +381,7 @@ BotPlayer.prototype.getBiggest = function(list) {
     return biggest;
 };
 
-BotPlayer.prototype.findNearbyVirus = function(cell, checkDist, list) {
+minionPlayer.prototype.findNearbyVirus = function(cell, checkDist, list) {
     var r = cell.getSize() + 100; // Gets radius + virus radius
     for (var i = 0; i < list.length; i++) {
         var check = list[i];
@@ -518,7 +393,7 @@ BotPlayer.prototype.findNearbyVirus = function(cell, checkDist, list) {
     return false; // Returns a bool if no nearby viruses are found
 };
 
-BotPlayer.prototype.checkPath = function(cell, check) {
+minionPlayer.prototype.checkPath = function(cell, check) {
     // Get angle of path
     var v1 = Math.atan2(cell.position.x - player.mouse.x, cell.position.y - player.mouse.y);
 
@@ -537,7 +412,7 @@ BotPlayer.prototype.checkPath = function(cell, check) {
     return false;
 };
 
-BotPlayer.prototype.getDist = function(cell, check) {
+minionPlayer.prototype.getDist = function(cell, check) {
     // Fastest distance - I have a crappy computer to test with :(
     var xd = (check.position.x - cell.position.x);
     xd = xd < 0 ? xd * -1 : xd; // Math.abs is slow
@@ -548,7 +423,7 @@ BotPlayer.prototype.getDist = function(cell, check) {
     return (xd + yd);
 };
 
-BotPlayer.prototype.getAccDist = function(cell, check) {
+minionPlayer.prototype.getAccDist = function(cell, check) {
     // Accurate Distance
     var xs = check.position.x - cell.position.x;
     xs = xs * xs;
@@ -559,13 +434,13 @@ BotPlayer.prototype.getAccDist = function(cell, check) {
     return Math.sqrt(xs + ys);
 };
 
-BotPlayer.prototype.getAngle = function(c1, c2) {
+minionPlayer.prototype.getAngle = function(c1, c2) {
     var deltaY = c1.position.y - c2.position.y;
     var deltaX = c1.position.x - c2.position.x;
     return Math.atan2(deltaX, deltaY);
 };
 
-BotPlayer.prototype.reverseAngle = function(angle) {
+minionPlayer.prototype.reverseAngle = function(angle) {
     if (angle > Math.PI) {
         angle -= Math.PI;
     } else {

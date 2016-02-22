@@ -1,7 +1,7 @@
 var Packet = require('./packet');
 var GameServer = require('./GameServer.js');
 
-function PlayerTracker(gameServer, socket) {
+function PlayerTracker(gameServer, socket, owner) {
     this.pID = -1;
     this.disconnect = -1; // Disconnection
     this.name = "";
@@ -9,7 +9,10 @@ function PlayerTracker(gameServer, socket) {
     this.socket = socket;
     this.rainbowon = false;
     this.mergeOverrideDuration = 0;
-     this.recombineinstant = false;
+    this.recombineinstant = false;
+    this.mi = 0
+    this.owner = owner
+    this.oldname = "";
     this.norecombine = false;
     this.nodeAdditionQueue = [];
     this.premium = '';
@@ -29,10 +32,10 @@ function PlayerTracker(gameServer, socket) {
     this.team = 0;
     this.spectate = false;
     this.freeRoam = false; // Free-roam mode enables player to move in spectate mode
-this.massDecayMult = 1; // Anti-teaming multiplier
-   this.actionMult = 0; // If reaches over 1, it'll account as anti-teaming
+    this.massDecayMult = 1; // Anti-teaming multiplier
+    this.actionMult = 0; // If reaches over 1, it'll account as anti-teaming
     this.actionDecayMult = 1; // Players not teaming will lose their anti-teaming multiplier far more quickly
-    
+
     // Viewing box
     this.sightRangeX = 0;
     this.sightRangeY = 0;
@@ -76,35 +79,45 @@ module.exports = PlayerTracker;
 
 PlayerTracker.prototype.setName = function(name) {
     this.name = name;
-    
+
 };
 
 PlayerTracker.prototype.getName = function() {
     if (this.gameServer.config.skins == 1) {
-        
-            if (this.name.substr(0, 1) == "<") {
-                // Premium Skin
-                var n = this.name.indexOf(">");
-                if (n != -1) {
-                    if (this.name.substr(1, n - 1) == "r") {
-                        this.rainbowon = true;
-                    } else {
+
+        if (this.name.substr(0, 1) == "<") {
+            // Premium Skin
+            var n = this.name.indexOf(">");
+            if (n != -1) {
+                if (this.name.substr(1, n - 1) == "r") {
+                    this.rainbowon = true;
+                } else {
                     this.premium = '%' + this.name.substr(1, n - 1);
-                        this.rainbowon = false;
+                    this.rainbowon = false;
+                }
+                for (var i in this.gameServer.skinshortcut) {
+                    if (!this.gameServer.skinshortcut[i] || !this.gameServer.skin[i]) {
+                        continue;
                     }
-                    this.name = this.name.substr(n + 1);
-                    
+                    if (this.name.substr(1, n - 1) == this.gameServer.skinshortcut[i]) {
+                        this.premium = this.gameServer.skin[i];
+                        break;
+                    }
+
                 }
-            } else if (this.name.substr(0, 1) == "[") {
-                // Premium Skin
-                var n = this.name.indexOf("]");
-                if (n != -1) {
-                    
-                    this.premium = ':http://' + this.name.substr(1, n - 1);
-                    this.name = this.name.substr(n + 1);
-                }
-            } 
+                this.name = this.name.substr(n + 1);
+
+            }
+        } else if (this.name.substr(0, 1) == "[") {
+            // Premium Skin
+            var n = this.name.indexOf("]");
+            if (n != -1) {
+
+                this.premium = ':http://' + this.name.substr(1, n - 1);
+                this.name = this.name.substr(n + 1);
+            }
         }
+    }
     return this.name;
 };
 
@@ -116,26 +129,22 @@ PlayerTracker.prototype.getScore = function(reCalcScore) {
             this.score = s;
         }
     }
-    
-   
+
     if (this.score > this.gameServer.topscore + 10) {
-        
+
         if (this.name != this.gameServer.topusername) {
-        this.gameServer.oldtopscores.score = this.gameServer.topscore;
-        this.gameServer.oldtopscores.name = this.gameServer.topusername;
+            this.gameServer.oldtopscores.score = this.gameServer.topscore;
+            this.gameServer.oldtopscores.name = this.gameServer.topusername;
         }
         this.gameServer.topscore = Math.floor(this.score);
         this.gameServer.topusername = this.name;
 
-        
-        
-        
         if (this.gameServer.config.showtopscore == 1) {
-            console.log("[Console] " +this.name +" Made a new high score of "+ Math.floor(this.score));
+            console.log("[Console] " + this.name + " Made a new high score of " + Math.floor(this.score));
         }
     }
     return Math.floor(this.score);
-    
+
 };
 
 PlayerTracker.prototype.setColor = function(color) {
@@ -147,9 +156,9 @@ PlayerTracker.prototype.setColor = function(color) {
 PlayerTracker.prototype.getTeam = function() {
     return this.team;
 };
-PlayerTracker.prototype.getPremium = function () {
-     return this.premium;
- };
+PlayerTracker.prototype.getPremium = function() {
+    return this.premium;
+};
 // Functions
 
 PlayerTracker.prototype.update = function() {
@@ -170,15 +179,15 @@ PlayerTracker.prototype.update = function() {
     }
 
     var updateNodes = []; // Nodes that need to be updated via packet
-    
-if (this.mergeOverrideDuration < 150 && this.recombineinstant) {
+
+    if (this.mergeOverrideDuration < 150 && this.recombineinstant) {
         this.mergeOverrideDuration++;
-     } else if (this.recombineinstant)  {
-         this.recombineinstant = false;
-         this.mergeOverrideDuration = 0;
-     } else {
-         this.mergeOverrideDuration = 0;
-     }
+    } else if (this.recombineinstant) {
+        this.recombineinstant = false;
+        this.mergeOverrideDuration = 0;
+    } else {
+        this.mergeOverrideDuration = 0;
+    }
     // Remove nodes from visible nodes if possible
     var d = 0;
     while (d < this.nodeDestroyQueue.length) {
@@ -197,30 +206,31 @@ if (this.mergeOverrideDuration < 150 && this.recombineinstant) {
     if (this.tickViewBox <= 0) {
         var newVisible = this.calcViewBox();
         if (newVisible && newVisible.length) {
-        try { // Add a try block in any case
+            try { // Add a try block in any case
 
-            // Compare and destroy nodes that are not seen
-            for (var i = 0; i < this.visibleNodes.length; i++) {
-                var index = newVisible.indexOf(this.visibleNodes[i]);
-                if (index == -1) {
-                    // Not seen by the client anymore
-                    nonVisibleNodes.push(this.visibleNodes[i]);
+                // Compare and destroy nodes that are not seen
+                for (var i = 0; i < this.visibleNodes.length; i++) {
+                    var index = newVisible.indexOf(this.visibleNodes[i]);
+                    if (index == -1) {
+                        // Not seen by the client anymore
+                        nonVisibleNodes.push(this.visibleNodes[i]);
+                    }
                 }
-            }
 
-            // Add nodes to client's screen if client has not seen it already
-            for (var i = 0; i < newVisible.length; i++) {
-                var index = this.visibleNodes.indexOf(newVisible[i]);
-                if (index == -1) {
-                    updateNodes.push(newVisible[i]);
+                // Add nodes to client's screen if client has not seen it already
+                for (var i = 0; i < newVisible.length; i++) {
+                    var index = this.visibleNodes.indexOf(newVisible[i]);
+                    if (index == -1) {
+                        updateNodes.push(newVisible[i]);
+                    }
                 }
-            }
-        } finally {} // Catch doesn't work for some reason
+            } finally {} // Catch doesn't work for some reason
 
-        this.visibleNodes = newVisible;
-        // Reset Ticks
-        this.tickViewBox = 2;
-    }} else {
+            this.visibleNodes = newVisible;
+            // Reset Ticks
+            this.tickViewBox = 2;
+        }
+    } else {
         this.tickViewBox--;
         // Add nodes to screen
         for (var i = 0; i < this.nodeAdditionQueue.length; i++) {
@@ -287,25 +297,24 @@ if (this.mergeOverrideDuration < 150 && this.recombineinstant) {
 
 // Viewing box
 PlayerTracker.prototype.antiTeamTick = function() {
-     // ANTI-TEAMING DECAY
-     // Calculated even if anti-teaming is disabled.
-     this.actionMult *= (0.999 * this.actionDecayMult);
-     this.actionDecayMult *= 0.999;
-     
-     if (this.actionDecayMult > 1.002004) this.actionDecayMult = 1.002004; // Very small differences. Don't change this.
-     if (this.actionDecayMult < 1) this.actionDecayMult = 1;
-     
-     // Limit/reset anti-teaming effect
-     if (this.actionMult < 1 && this.massDecayMult > 1) this.actionMult = 0.299; // Speed up cooldown
-     if (this.actionMult > 1.4) this.actionMult = 1.4;
-     if (this.actionMult < 0.15) this.actionMult = 0;
-     
-     // Apply anti-teaming if required
-     if (this.actionMult > 1) this.massDecayMult = this.actionMult;
-     else this.massDecayMult = 1;
- 
- }
- 
+    // ANTI-TEAMING DECAY
+    // Calculated even if anti-teaming is disabled.
+    this.actionMult *= (0.999 * this.actionDecayMult);
+    this.actionDecayMult *= 0.999;
+
+    if (this.actionDecayMult > 1.002004) this.actionDecayMult = 1.002004; // Very small differences. Don't change this.
+    if (this.actionDecayMult < 1) this.actionDecayMult = 1;
+
+    // Limit/reset anti-teaming effect
+    if (this.actionMult < 1 && this.massDecayMult > 1) this.actionMult = 0.299; // Speed up cooldown
+    if (this.actionMult > 1.4) this.actionMult = 1.4;
+    if (this.actionMult < 0.15) this.actionMult = 0;
+
+    // Apply anti-teaming if required
+    if (this.actionMult > 1) this.massDecayMult = this.actionMult;
+    else this.massDecayMult = 1;
+
+}
 
 PlayerTracker.prototype.updateSightRange = function() { // For view distance
     var totalSize = 1.0;
@@ -387,27 +396,27 @@ PlayerTracker.prototype.getSpectateNodes = function() {
         // TODO: Sort out switch between playerTracker.playerTracker.x and playerTracker.x problem.
         specPlayer = this.gameServer.largestClient;
         // Detect specByLeaderboard as player trackers are complicated
-        if (!this.gameServer.gameMode.specByLeaderboard && specPlayer) {
+        if (!this.gameServer.gameMode.specByLeaderboard && specPlayer && specPlayer.playerTracker) {
             // Get spectated player's location and calculate zoom amount
             var specZoom = Math.sqrt(100 * specPlayer.playerTracker.score);
             specZoom = Math.pow(Math.min(40.5 / specZoom, 1.0), 0.4) * 0.6;
-            
+
             // Apparently doing this.centerPos = specPlayer.centerPos will set based on reference. We don't want this
             this.centerPos.x = specPlayer.playerTracker.centerPos.x;
             this.centerPos.y = specPlayer.playerTracker.centerPos.y;
-            
+
             this.sendCustomPosPacket(specPlayer.playerTracker.centerPos.x, specPlayer.playerTracker.centerPos.y, specZoom);
             return specPlayer.playerTracker.visibleNodes.slice(0, specPlayer.playerTracker.visibleNodes.length);
-            
+
         } else if (this.gameServer.gameMode.specByLeaderboard && specPlayer) {
             // Get spectated player's location and calculate zoom amount
             var specZoom = Math.sqrt(100 * specPlayer.score);
             specZoom = Math.pow(Math.min(40.5 / specZoom, 1.0), 0.4) * 0.6;
-            
+
             // Apparently doing this.centerPos = specPlayer.centerPos will set based on reference. We don't want this
             this.centerPos.x = specPlayer.centerPos.x;
             this.centerPos.y = specPlayer.centerPos.y;
-            
+
             this.sendCustomPosPacket(specPlayer.centerPos.x, specPlayer.centerPos.y, specZoom);
             return specPlayer.visibleNodes.slice(0, specPlayer.visibleNodes.length);
         }
