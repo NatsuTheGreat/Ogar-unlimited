@@ -213,7 +213,6 @@ function GameServer() {
   this.tick = 0; // 1 second ticks of mainLoop
   this.tickMain = 0; // 50 ms ticks, 20 of these = 1 leaderboard update
   this.tickSpawn = 0; // Used with spawning food
-  this.mainLoopBind = this.mainLoop.bind(this);
 
   // Config
   this.config = { // Border - Right: X increases, Down: Y increases (as of 2015-05-20)
@@ -367,8 +366,7 @@ GameServer.prototype.start = function () {
     this.startingFood();
 
     // Start Main Loop
-    //setInterval(this.mainLoop.bind(this), 1);
-    setImmediate(this.mainLoopBind);
+    setInterval(this.mainLoop.bind(this), 1);
 
     // Done
     // todo remove: var fs = require("fs"); // Import the util library
@@ -1063,9 +1061,9 @@ GameServer.prototype.mainLoop = function () {
   if (this.tick >= 1000 / this.config.fps) {
     // Loop main functions
     if (this.run) {
-      (this.cellTick(), 0);
-      (this.spawnTick(), 0);
-      (this.gamemodeTick(), 0);
+      setTimeout(this.cellTick(), 0);
+      setTimeout(this.spawnTick(), 0);
+      setTimeout(this.gamemodeTick(), 0);
     }
 
     if (this.config.liveConsole == 1) {
@@ -1222,13 +1220,7 @@ GameServer.prototype.mainLoop = function () {
         this.leaderboard = [];
       }
     }
-    
-    // Restart main loop immediately after current event loop (setImmediate does not amplify any lag delay unlike setInterval or setTimeout)
-	  setImmediate(this.mainLoopBind);
-	} else {
-	  // Restart main loop 1 ms after current event loop (setTimeout uses less cpu resources than setImmediate)
-		setTimeout(this.mainLoopBind, 1);
-	}
+  }
 };
 
 GameServer.prototype.resetlb = function () {
